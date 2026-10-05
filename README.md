@@ -2,6 +2,10 @@
 
 DataTrust is a data quality and reliability intelligence platform that empowers users to upload datasets, profile data, validate quality rules, detect anomalies, calculate an explainable reliability score, and get AI-generated diagnostic explanations.
 
+## Live Demo
+
+[DataTrust](https://data-trust-three.vercel.app/)
+
 ## Features
 
 - **CSV/Parquet Dataset Upload**: Seamless ingestion of CSV and Parquet files with zero cloud lock-in.
