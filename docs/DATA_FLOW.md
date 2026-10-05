@@ -172,7 +172,7 @@ This document details the complete end-to-end data lifecycle in DataTrust, traci
 ### Stage 9: AI Explanation Engine
 - **Status**: **Completed (Phase 8)**
 - **Endpoint**: `POST /api/datasets/{dataset_id}/ai/explanation`
-- **Engine**: Google GenAI SDK (`gemini-2.5-flash` via `GeminiService`).
+- **Engine**: Google GenAI SDK (Gemini AI via `GeminiService`).
 - **Actions**:
   1. Compiles aggregated structural profiling, failing quality rules, outlier statistics, and composite reliability score.
   2. **Data Privacy Guarantee**: Zero raw CSV/Parquet rows or user credentials are transmitted to Gemini.

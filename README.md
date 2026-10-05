@@ -45,7 +45,7 @@ Modern data and ML pipelines suffer from silent failures:
 3. **Black-Box Metrics**: Most tools produce pass/fail logs without an aggregate, objective measure of tabular reliability or historical drift tracking.
 4. **Data Privacy Hazards**: Using cloud LLMs to diagnose data quality often leaks sensitive tabular records or PII to external third-party models.
 
-**DataTrust solves this** by combining in-process columnar analytics (DuckDB), declarative quality rules, unsupervised machine learning (scikit-learn Isolation Forest), and privacy-preserving generative AI (Google Gemini 2.5 Flash) into a unified, lightweight, sub-15ms responsive SaaS platform.
+**DataTrust solves this** by combining in-process columnar analytics (DuckDB), declarative quality rules, unsupervised machine learning (scikit-learn Isolation Forest), and privacy-preserving generative AI (Google Gemini AI) into a unified, lightweight, sub-15ms responsive SaaS platform.
 
 ---
 
@@ -176,7 +176,7 @@ DataTrust enforces strict architectural boundaries to guarantee that sensitive t
 | **Relational DB** | PostgreSQL 16, SQLAlchemy 2.0, Alembic | Persistent metadata storage & versioned migrations |
 | **Analytical OLAP** | DuckDB (Embedded) | In-process vectorized file scanning and aggregation |
 | **Data Science / ML**| scikit-learn, NumPy, Pandas | Unsupervised Isolation Forest statistical anomaly detection |
-| **Generative AI** | Google GenAI SDK (`gemini-2.5-flash`) | Explainable plain-language quality diagnostic synthesis |
+| **Generative AI** | Google GenAI SDK (Gemini AI) | Explainable plain-language quality diagnostic synthesis |
 | **DevOps / Containers**| Docker, Docker Compose, Nginx | Multi-container reproducible development and deployment |
 | **CI / CD** | GitHub Actions | Automated linting, test suites, and build verification |
 
@@ -366,7 +366,7 @@ MAX_UPLOAD_SIZE_MB=50
 
 # Google Gemini AI Integration (Optional)
 # If omitted, AI explanation endpoints return a graceful 503 with instructions
-GEMINI_API_KEY=
+GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
 ```
 
