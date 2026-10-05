@@ -1,6 +1,6 @@
 # DataTrust — Project Status
 
-Last Updated: Phase 5 Data Quality Rules Engine Completion
+Last Updated: Phase 6 Reliability Score & Statistical Anomaly Detection Completion
 
 ---
 
@@ -13,9 +13,9 @@ Last Updated: Phase 5 Data Quality Rules Engine Completion
 | **Phase 3** | **Dataset Ingestion & Storage** | **Completed** | Multipart upload (`.csv`, `.parquet`), local storage service, DuckDB in-process inspection, Dataset & DatasetColumn models, Alembic migrations 002/003, frontend datasets management, schema viewer, and sample orders dataset. |
 | **Phase 4** | **DuckDB Profiling Engine** | **Completed** | In-process analytical profiling: quantiles, min, max, mean, standard deviation, categorical frequencies, missing value distributions, Recharts visualizations, and interactive column inspector. |
 | **Phase 5** | **Quality Rules Engine** | **Completed** | Declarative quality rules (not_null, unique, numeric_range, allowed_values, email_format, no_future_dates), dynamic DuckDB validation, Quality Score, rule CRUD, and interactive issues UI. |
-| **Phase 6** | **Reliability Scoring** | *Planned Next* | Objective 0–100 composite data trust score calculation algorithm. |
-| **Phase 7** | **Anomaly Detection** | *Planned* | Scikit-learn `IsolationForest` unsupervised outlier detection on tabular feature distributions. |
-| **Phase 8** | **Analytics & Historical Tracking** | *Planned* | Run-over-run quality metrics, drift detection, and historical timeline aggregation. |
+| **Phase 6** | **Reliability Score & Anomaly Detection** | **Completed** | Isolation Forest statistical anomaly detection, explainable 0–100 Reliability Score (50% Quality, 25% Completeness, 25% Anomaly Health), per-column outlier samples, and interactive UI. |
+| **Phase 7** | **Historical Quality Tracking** | *Planned Next* | Run-over-run quality metrics, drift detection, and historical timeline regression. |
+| **Phase 8** | **Advanced Analytics Dashboard** | *Planned* | Interactive multi-column distribution plots, correlations, and dataset comparison tools. |
 | **Phase 9** | **AI Explanation Engine** | *Planned* | Gemini API integration providing natural language diagnostics on detected quality issues. |
 | **Phase 10** | **Production Dashboard & Visualizations** | *Planned* | Recharts interactive visualizations, file upload dropzone, live audit progress. |
 | **Phase 11** | **End-to-End Testing & Hardening** | *Planned* | Integration tests, seed sample datasets, rate-limiting. |
@@ -60,10 +60,36 @@ Last Updated: Phase 5 Data Quality Rules Engine Completion
 
 ---
 
-## 3. Planned Next (Phase 6)
+## 3. Completed in Phase 6
 
-- [ ] **DataTrust Reliability Score Calculation**: Composite weighted scoring model combining rule pass rate, completeness, consistency, uniqueness, and temporal validity.
-- [ ] **Score Breakdown Categorization**: Reliability tiers (High, Medium, Low) and dimension scoring.
-- [ ] **Frontend Reliability Gauge**: Visual indicator and dimension breakdown card.
+- [x] **Statistical Anomaly Detection Service (`AnomalyService`)**:
+  - Vectorized feature extraction from DuckDB into NumPy arrays.
+  - Integration of `scikit-learn` `IsolationForest` (`contamination=0.05`, `random_state=42`) executed strictly on numeric columns.
+  - Safe observation count thresholds: columns with fewer than 10 non-null values are marked `skipped` with clear diagnostic messages.
+  - Decision function ranking extracting up to 5 representative anomalous sample values per column.
+- [x] **DataTrust Explainable Reliability Score Service (`ReliabilityService`)**:
+  - Composite formula: $\text{Reliability Score} = 0.50 \times \text{Quality} + 0.25 \times \text{Completeness} + 0.25 \times \text{Anomaly Health}$.
+  - Completeness dimension: $\max(0, \min(100, 100 - \text{missing\_percentage}))$.
+  - Anomaly Health dimension: $\max(0, 100 - \text{anomaly\_percentage} \times 10)$.
+  - Quality dimension: Quality Rules compliance percentage (defaults to 100.0% if unconfigured).
+  - Categorization into transparent quality tiers: **Excellent** (90–100), **Good** (75–89), **Fair** (60–74), and **Poor** (0–59).
+- [x] **REST APIs**:
+  - `POST /api/datasets/{dataset_id}/anomalies/detect`: Run Isolation Forest detection with customizable contamination parameter.
+  - `GET /api/datasets/{dataset_id}/reliability`: Compute explainable 3-pillar reliability score.
+  - Enforced JWT authentication and strict workspace isolation (404 for inaccessible datasets).
+- [x] **Frontend Experience**:
+  - Third main tab **Reliability & Anomalies** added to `DatasetDetailPage.tsx`.
+  - `ReliabilityOverview.tsx`: Visual circular gauge (0–100), tier classification badge, 3 component breakdown cards with progress bars and point contributions, and formula explanation.
+  - `AnomalyDetectionSection.tsx`: Overview metric cards, contamination factor selector (1%–10%), column outlier rates with colored visual meters, and sample outlier value chips.
+- [x] **Automated Tests**:
+  - Total 42 unit and integration tests passing (`pytest -v`), including 10 dedicated tests across `test_anomaly.py` and `test_reliability.py`.
+
+---
+
+## 4. Planned Next (Phase 7)
+
+- [ ] **Historical Quality Tracking & Run Logging**: Persist quality evaluation runs over time to track data health evolution.
+- [ ] **Run-over-Run Quality Trends**: Visual trend lines and historical run comparison.
+- [ ] **Drift & Regression Alerts**: Automatically flag quality score drops or metric regressions between consecutive ingestion batches.
 
 

@@ -2,6 +2,8 @@ from fastapi import APIRouter
 from app.api.auth import router as auth_router
 from app.api.datasets import router as datasets_router
 from app.api.quality import router as quality_router
+from app.api.anomaly import router as anomaly_router
+from app.api.reliability import router as reliability_router
 from app.schemas.health import HealthCheckResponse
 
 api_router = APIRouter()
@@ -10,6 +12,8 @@ api_router = APIRouter()
 api_router.include_router(auth_router)
 api_router.include_router(datasets_router)
 api_router.include_router(quality_router)
+api_router.include_router(anomaly_router)
+api_router.include_router(reliability_router)
 
 
 

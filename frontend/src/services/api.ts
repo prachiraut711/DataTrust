@@ -7,6 +7,8 @@ import type {
   QualityRuleCreate,
   QualityRuleUpdate,
 } from "@/types/quality";
+import type { AnomalyDetectionResponse } from "@/types/anomaly";
+import type { ReliabilityScoreResponse } from "@/types/reliability";
 
 
 export interface HealthResponse {
@@ -230,6 +232,40 @@ export async function evaluateQualityRulesApi(
     },
   });
   return handleResponse<QualityEvaluationResponse>(response);
+}
+
+export async function detectAnomaliesApi(
+  token: string,
+  datasetId: string,
+  contamination = 0.05
+): Promise<AnomalyDetectionResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/datasets/${datasetId}/anomalies/detect?contamination=${contamination}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    }
+  );
+  return handleResponse<AnomalyDetectionResponse>(response);
+}
+
+export async function getReliabilityApi(
+  token: string,
+  datasetId: string
+): Promise<ReliabilityScoreResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/datasets/${datasetId}/reliability`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    }
+  );
+  return handleResponse<ReliabilityScoreResponse>(response);
 }
 
 

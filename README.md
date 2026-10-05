@@ -8,31 +8,33 @@ DataTrust is an incremental SaaS platform designed to determine whether CSV and 
 
 ## Project Status
 
-**Phase 5 — Data Quality Rules Engine: Completed**
+**Phase 6 — Reliability Score + Statistical Anomaly Detection: Completed**
 
-The data quality rules engine, PostgreSQL configuration persistence (`dataset_quality_rules`), Alembic migration `004_create_dataset_quality_rules`, dynamic DuckDB SQL evaluation, Quality Score computation, and interactive rule management & issue reporting UI are fully operational and verified.
+The DataTrust composite reliability scoring system, scikit-learn Isolation Forest unsupervised outlier detection engine, per-column anomaly inspections with sample discovery, and interactive UI views are fully operational and verified.
 
-- **Configurable Quality Assertions**: Declarative rule creation and management supporting required fields (`not_null`), uniqueness (`unique`), numeric bounds (`numeric_range`), permitted sets (`allowed_values`), regex email format (`email_format`), and temporal boundaries (`no_future_dates`).
-- **Dynamic DuckDB Rule Execution**: Real-time evaluation against raw CSV and Parquet files without database bloat or storing individual row-level violations in PostgreSQL.
-- **Objective Quality Score**: Roll-up index calculating `(passed_checks / applicable_checks) * 100` alongside aggregate violating row counts.
-- **Rule Management & Issues UI**: Interactive rules table, inline enable/disable toggles, rule creation/edit dialogs, and highlighted quality issue cards with actionable error explanations.
+- **Statistical Anomaly Detection Engine**: High-performance vectorized numerical outlier detection powered by scikit-learn's `IsolationForest` (`contamination=0.05`, `random_state=42`) querying DuckDB. Safely skips sparse columns (< 10 non-null values) and extracts top representative anomalous sample values.
+- **Explainable Reliability Score**: Composite 0–100 index combining three foundational pillars:
+  $$\text{Reliability Score} = 0.50 \times \text{Quality} + 0.25 \times \text{Completeness} + 0.25 \times \text{Anomaly Health}$$
+  where Completeness penalizes missing cells and Anomaly Health penalizes statistical outlier densities.
+- **Classification Tiers**: Intuitive operational readiness ratings: **Excellent** (90–100), **Good** (75–89), **Fair** (60–74), and **Poor** (0–59).
+- **Interactive Reliability & Anomalies UI**: Dedicated tab in Dataset Details displaying a circular score gauge, three component contribution cards with visual progress bars, contamination selector (1%–10%), and detailed column anomaly tables with sample outlier chips.
 
 See [PROJECT_STATUS.md](file:///D:/prachi/Antigravity-Projects/DataTrust/PROJECT_STATUS.md) for current progress and upcoming phase milestones.
 
 ---
 
-## Data Quality Rules
+## Reliability Score & Anomaly Detection
 
-DataTrust allows data teams to configure declarative validation assertions against dataset columns:
+DataTrust delivers an objective, mathematically transparent measure of tabular data trustworthiness:
 
-1. **Required / Not Null (`not_null`)**: Verifies that values must not be missing or empty (`column IS NOT NULL`).
-2. **Unique Constraints (`unique`)**: Verifies that non-null values are distinct, reporting exact duplicate counts.
-3. **Numeric Range (`numeric_range`)**: Validates that numerical values fall within explicit min and/or max boundaries (`column >= min AND column <= max`).
-4. **Allowed Categories (`allowed_values`)**: Asserts that values belong to an authorized permitted set (`column IN (...)`).
-5. **Email Format (`email_format`)**: Validates text against standard email syntax via SQL regular expressions.
-6. **No Future Dates (`no_future_dates`)**: Asserts that temporal timestamps occur in the past or present (`column <= CURRENT_TIMESTAMP`).
-
-DataTrust calculates a **Quality Score** (`passed_checks / applicable_checks * 100`) and reports row violation metrics without copying raw data.
+1. **Composite Reliability Formula**:
+   - **Quality Component (50%)**: Measures compliance against user-defined data quality assertions (e.g. ranges, unique keys, regex formats). Defaults to 100% when no rules are configured.
+   - **Completeness Component (25%)**: Evaluates dataset cell density ($\max(0, \min(100, 100 - \text{missing\_percentage}))$).
+   - **Anomaly Health Component (25%)**: Penalizes extreme numerical outliers detected by Isolation Forest ($\max(0, 100 - \text{anomaly\_percentage} \times 10)$).
+2. **Isolation Forest Outlier Detection**:
+   - Evaluates numeric feature distributions using tree-based recursive partitioning.
+   - Computes decision function scores to rank and extract up to 5 representative anomalous sample values per column.
+   - Safe observation thresholding skips columns with fewer than 10 observations with clear explanations.
 
 
 ---
@@ -87,9 +89,9 @@ DataTrust delivers a clean, high-performance, developer-friendly reliability eng
 - **Dataset Ingestion & DuckDB Inspection** *(Completed - Phase 3)*: Upload CSV/Parquet, sanitized storage, DuckDB vectorized profiling (rows, types, nulls, distincts), and schema browser.
 - **Advanced Statistical Profiling** *(Completed - Phase 4)*: In-process calculation of quantiles, min, max, mean, standard deviation, categorical frequencies, missing value distributions, and interactive Recharts visualizations.
 - **Data Quality Engine** *(Completed - Phase 5)*: Configurable declarative assertions (not null, unique, range boundaries, permitted sets, email regex, no future dates), dynamic DuckDB validation, Quality Score, and issues UI.
-- **DataTrust Reliability Score** *(Planned - Phase 6)*: An objective 0–100 weighted index communicating operational readiness for machine learning.
-- **Unsupervised Anomaly Detection** *(Planned - Phase 7)*: Isolation Forest outlier scoring on multivariate distributions.
-- **Run-over-Run Quality Analytics** *(Planned - Phase 8)*: Historical tracking of dataset runs to identify quality regressions and data drift.
+- **Reliability Score & Anomaly Detection** *(Completed - Phase 6)*: Objective 0–100 composite index (50% Quality, 25% Completeness, 25% Anomaly Health) and scikit-learn Isolation Forest unsupervised outlier detection on numeric columns.
+- **Run-over-Run Quality Analytics** *(Planned - Phase 7)*: Historical tracking of dataset runs to identify quality regressions and data drift.
+- **Advanced Analytics Dashboard** *(Planned - Phase 8)*: Multi-column distribution plots, correlation matrix, and dataset comparisons.
 - **AI Explanation Engine** *(Planned - Phase 9)*: Plain-language root cause diagnostics and remediation advice powered by the Gemini API.
 
 ---

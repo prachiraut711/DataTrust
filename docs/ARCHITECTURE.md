@@ -82,13 +82,39 @@ The system follows a clean modular monolithic architecture designed for clear se
      ▼
   Quality Score ((passed_checks / applicable_checks) * 100)
   ```
+- **Reliability & Anomaly Architecture Flow (Phase 6)**:
+  ```
+                      Dataset
+                         │
+               ┌─────────┴─────────┐
+               ▼                   ▼
+         Data Profiling       Quality Rules
+               │                   │
+               ▼                   ▼
+         Anomaly Detection     Quality Score
+               │                   │
+               └─────────┬─────────┘
+                         ▼
+                  Reliability Score
+                         │
+                         ▼
+                   DataTrust UI
+  ```
+- **Explainable Reliability Score Formula**:
+  $$\text{Reliability Score} = 0.50 \times \text{Quality} + 0.25 \times \text{Completeness} + 0.25 \times \text{Anomaly Health}$$
+  where:
+  - $\text{Completeness} = \max(0, \min(100, 100 - \text{missing\_percentage}))$
+  - $\text{Anomaly Health} = \max(0, 100 - \text{anomaly\_percentage} \times 10)$
+  - $\text{Quality} = \text{quality\_score}$ from quality rules evaluation (defaults to 100.0 if unconfigured).
+  - Levels: **Excellent** (90–100), **Good** (75–89), **Fair** (60–74), **Poor** (0–59).
 - **Modular Services**:
   - `datasets/`: Ingestion, storage orchestration, DuckDB analytical inspection, and CRUD.
   - `profiling/`: Statistical schema inference, quantiles, distributions, and frequencies (Phase 4).
   - `quality/`: Configurable validation rules, dynamic DuckDB execution, Quality Score, and issue identification (Phase 5).
-  - `analytics/`: Aggregate metric generation and data health indexing (Phase 8).
-  - `anomaly/`: Scikit-learn `IsolationForest` unsupervised outlier detection (Phase 7).
-  - `ai/`: Gemini API integration explaining detected anomalies in plain language (Phase 9).
+  - `anomaly/`: Scikit-learn `IsolationForest` statistical outlier detection on numeric columns (Phase 6).
+  - `reliability/`: Composite 3-pillar data reliability calculation engine (Phase 6).
+  - `analytics/`: Historical tracking and quality regression detection (Phase 7).
+  - `ai/`: Gemini API integration explaining detected anomalies in plain language (Phase 8).
 
 ---
 

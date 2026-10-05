@@ -15,6 +15,7 @@ import {
   CheckCircle,
   BarChart2,
   ShieldCheck,
+  Award,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +36,8 @@ import type { DatasetProfileResponse } from "@/types/profile";
 import { MissingValuesChart } from "@/components/profiling/MissingValuesChart";
 import { ColumnProfileInspector } from "@/components/profiling/ColumnProfileInspector";
 import { QualityRulesSection } from "@/components/quality/QualityRulesSection";
+import { ReliabilityOverview } from "@/components/reliability/ReliabilityOverview";
+import { AnomalyDetectionSection } from "@/components/anomaly/AnomalyDetectionSection";
 
 export function DatasetDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,7 +47,7 @@ export function DatasetDetailPage() {
   const [dataset, setDataset] = useState<DatasetDetail | null>(null);
   const [profile, setProfile] = useState<DatasetProfileResponse | null>(null);
   const [selectedColumnName, setSelectedColumnName] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"profiling" | "quality">("profiling");
+  const [activeTab, setActiveTab] = useState<"profiling" | "quality" | "reliability">("profiling");
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -222,7 +225,7 @@ export function DatasetDetailPage() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Phase 5: Quality Engine Active
+              Phase 6: Reliability & Anomaly Active
             </span>
           </div>
         </div>
@@ -251,6 +254,17 @@ export function DatasetDetailPage() {
         >
           <ShieldCheck className="h-4 w-4" />
           Data Quality Rules
+        </button>
+        <button
+          onClick={() => setActiveTab("reliability")}
+          className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            activeTab === "reliability"
+              ? "border-primary text-primary font-bold"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Award className="h-4 w-4" />
+          Reliability & Anomalies
         </button>
       </div>
 
@@ -476,6 +490,23 @@ export function DatasetDetailPage() {
         />
       )}
 
+      {/* Tab 3: Reliability Score & Anomaly Detection */}
+      {activeTab === "reliability" && token && dataset && (
+        <div className="space-y-10">
+          <ReliabilityOverview
+            token={token}
+            datasetId={id!}
+            datasetName={dataset.name}
+          />
+          <div className="border-t pt-8">
+            <AnomalyDetectionSection
+              token={token}
+              datasetId={id!}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Analytical Roadmap Notice */}
       <Card className="border border-dashed bg-muted/10">
         <CardHeader className="p-4 pb-2">
@@ -484,13 +515,12 @@ export function DatasetDetailPage() {
             Upcoming Analytical Stages
           </div>
           <CardTitle className="text-sm font-semibold">
-            Composite Reliability Scoring & Anomaly Detection Pipeline
+            Historical Trends, Advanced Analytics & AI Explanation Pipeline
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-1 space-y-2">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Phase 4 (Profiling Engine) and Phase 5 (Quality Rules Engine) are now active. Subsequent phases will build upon these validations:
-            Objective 0–100 reliability scoring (Phase 6), Isolation Forest unsupervised outlier detection (Phase 7), historical run regression (Phase 8), and Gemini AI explanations (Phase 9).
+            Phase 4 (Profiling Engine), Phase 5 (Quality Rules Engine), and Phase 6 (Reliability Score & Isolation Forest Anomaly Detection) are now fully active. Subsequent phases will introduce historical run tracking and regression detection (Phase 7), advanced interactive dataset analytics (Phase 8), and Gemini AI explanation (Phase 9).
           </p>
         </CardContent>
       </Card>
