@@ -8,16 +8,49 @@ DataTrust is an incremental SaaS platform designed to determine whether CSV and 
 
 ## Project Status
 
-**Phase 3 — Dataset Ingestion & DuckDB Inspection: Completed**
+**Phase 4 — Dataset Profiling Engine: Completed**
 
-The dataset ingestion pipeline, local storage abstraction, in-process DuckDB analytical inspection, Dataset & DatasetColumn metadata models, Alembic migrations, dataset management screen, and schema viewer are fully operational and verified.
+The analytical profiling engine, DuckDB statistical distribution calculations, Pydantic response schemas, authenticated profiling endpoint (`GET /api/datasets/{id}/profile`), Recharts missing-value distribution, column inspector, and value histograms are fully operational and verified.
 
-- **Dataset Ingestion & Validation**: Multi-part upload supporting `.csv` and `.parquet` files with configurable 50 MB limits, sanitized UUID filenames, and path traversal protection.
-- **DuckDB In-Process Analytical Engine**: In-memory schema inference and vectorized calculation of null counts, null percentages, and distinct counts directly over raw disk files without database bloat.
-- **PostgreSQL Metadata Persistence**: Versioned via Alembic migrations (`001_initial` $\rightarrow$ `002_create_datasets` $\rightarrow$ `003_create_dataset_columns`).
-- **Frontend Dataset Interface**: Responsive `/datasets` dashboard, drag-and-drop ingestion modal, and `/datasets/:id` column schema table.
+- **Dataset-Level Statistics**: Fast in-process computation of total rows, columns, file size, exact duplicate row counts and percentages, total missing values, overall null rates, and column category tallies.
+- **Column-Level Distribution Metrics**:
+  - *Numeric Columns*: Minimum, maximum, arithmetic mean, median, standard deviation, and 5-bin value distribution histograms.
+  - *Categorical / Text Columns*: Distinct cardinality, top 5 value frequencies and ratios, and most common value resolution.
+  - *Date / Temporal Columns*: Earliest timestamp, latest timestamp, and detection of future-dated anomalies.
+- **Frontend Profiling Experience**: Interactive column inspector, dynamic missing values chart, frequency rankings, responsive column grid, and manual profile refresh.
+- **Vectorized DuckDB OLAP Queries**: Direct querying of `.csv` and `.parquet` storage without loading raw datasets into Python memory.
 
 See [PROJECT_STATUS.md](file:///D:/prachi/Antigravity-Projects/DataTrust/PROJECT_STATUS.md) for current progress and upcoming phase milestones.
+
+---
+
+## Dataset Profiling
+
+DataTrust performs deep, in-process statistical profiling on tabular data using DuckDB as its embedded analytical engine:
+
+1. **Dataset Statistics**:
+   - Total row and column counts.
+   - Raw storage size and format identification.
+   - Exact duplicate row detection (`COUNT(*) - COUNT(DISTINCT *)`) and duplicate percentage.
+   - Number of numeric, categorical, temporal, and other columns.
+   - Number of 100% unique columns (primary key candidates).
+2. **Missing-Value Statistics**:
+   - Total missing cells across the entire dataset.
+   - Overall missing-value percentage.
+   - Per-column null count and null rate with horizontal bar chart visualizations.
+3. **Duplicate Statistics**:
+   - Exact duplicate row counts across all columns without in-memory copying.
+   - Per-column distinct counts and uniqueness ratios (`distinct_count / total_rows`).
+4. **Numeric Statistics**:
+   - Minimum, maximum, mean, median, and sample standard deviation.
+   - Automatic 5-bucket distribution histogram for interactive chart rendering.
+5. **Categorical Statistics**:
+   - Cardinality (distinct count).
+   - Most frequent value.
+   - Top 5 values ranked by frequency and percentage share.
+6. **Date / Temporal Statistics**:
+   - Earliest and latest observed dates/timestamps.
+   - Future date count (identifying anomalous dates occurring after the system timestamp).
 
 ---
 
@@ -39,7 +72,7 @@ DataTrust delivers a clean, high-performance, developer-friendly reliability eng
 
 - **User Authentication & Workspaces** *(Completed - Phase 2)*: Email/password authentication, bcrypt hashing, stateless JWTs, and automatic workspace creation.
 - **Dataset Ingestion & DuckDB Inspection** *(Completed - Phase 3)*: Upload CSV/Parquet, sanitized storage, DuckDB vectorized profiling (rows, types, nulls, distincts), and schema browser.
-- **Advanced Statistical Profiling** *(Planned - Phase 4)*: In-process calculation of quantiles (25th/50th/75th), min, max, mean, standard deviation, and categorical frequencies.
+- **Advanced Statistical Profiling** *(Completed - Phase 4)*: In-process calculation of quantiles, min, max, mean, standard deviation, categorical frequencies, missing value distributions, and interactive Recharts visualizations.
 - **Data Quality Engine** *(Planned - Phase 5)*: Configurable declarative assertions (completeness, uniqueness, range boundaries, regex patterns).
 - **DataTrust Reliability Score** *(Planned - Phase 6)*: An objective 0–100 weighted index communicating operational readiness for machine learning.
 - **Unsupervised Anomaly Detection** *(Planned - Phase 7)*: Isolation Forest outlier scoring on multivariate distributions.
@@ -88,7 +121,7 @@ For an in-depth breakdown of database separation, schema models, and data lifecy
 - **Icons**: Lucide React
 - **Routing**: React Router DOM v6 with `ProtectedRoute`
 - **State**: React Context API (`AuthContext`)
-- **Charts (Planned)**: Recharts
+- **Charts**: Recharts (missing value distribution & histograms)
 
 ### Backend
 - **Framework**: FastAPI
@@ -98,7 +131,7 @@ For an in-depth breakdown of database separation, schema models, and data lifecy
 - **ORM / Persistence**: SQLAlchemy 2.0 with PostgreSQL drivers (`psycopg` & `psycopg2-binary`)
 - **Database Migrations**: Alembic
 - **Security & Authentication**: `bcrypt` (salted password hashing), `PyJWT` (stateless tokens)
-- **Testing**: Pytest & HTTPX TestClient (20 automated tests)
+- **Testing**: Pytest & HTTPX TestClient (26 automated tests)
 
 ### Data & Machine Learning (Planned Phases)
 - **Data Manipulation**: Pandas, NumPy

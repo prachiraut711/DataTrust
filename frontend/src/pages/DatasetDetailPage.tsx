@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -9,7 +9,10 @@ import {
   RefreshCw,
   Trash2,
   AlertCircle,
+  Copy,
   Sparkles,
+  Layers,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,8 +23,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuth } from "@/context/AuthContext";
-import { deleteDatasetApi, getDatasetDetailApi } from "@/services/api";
+import {
+  deleteDatasetApi,
+  getDatasetDetailApi,
+  getDatasetProfileApi,
+} from "@/services/api";
 import type { DatasetDetail } from "@/types/dataset";
+import type { DatasetProfileResponse } from "@/types/profile";
+import { MissingValuesChart } from "@/components/profiling/MissingValuesChart";
+import { ColumnProfileInspector } from "@/components/profiling/ColumnProfileInspector";
 
 export function DatasetDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -29,26 +39,46 @@ export function DatasetDetailPage() {
   const { token } = useAuth();
 
   const [dataset, setDataset] = useState<DatasetDetail | null>(null);
+  const [profile, setProfile] = useState<DatasetProfileResponse | null>(null);
+  const [selectedColumnName, setSelectedColumnName] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
 
-  const fetchDetail = async () => {
+  const fetchDatasetAndProfile = async (isManualRefresh: boolean = false) => {
     if (!token || !id) return;
-    setLoading(true);
+    if (isManualRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
+
     try {
-      const data = await getDatasetDetailApi(token, id);
-      setDataset(data);
+      // Fetch both dataset metadata and detailed statistical profile in parallel
+      const [datasetData, profileData] = await Promise.all([
+        getDatasetDetailApi(token, id),
+        getDatasetProfileApi(token, id),
+      ]);
+
+      setDataset(datasetData);
+      setProfile(profileData);
+
+      // Default select the first column if none selected
+      if (!selectedColumnName && profileData.columns.length > 0) {
+        setSelectedColumnName(profileData.columns[0].column_name);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load dataset details.");
+      setError(err instanceof Error ? err.message : "Failed to load dataset details or profile.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchDetail();
+    fetchDatasetAndProfile();
   }, [id, token]);
 
   const handleDelete = async () => {
@@ -77,29 +107,47 @@ export function DatasetDetailPage() {
     return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   };
 
+  // Resolve currently selected column
+  const selectedColumn = useMemo(() => {
+    if (!profile) return null;
+    return (
+      profile.columns.find((c) => c.column_name === selectedColumnName) ||
+      profile.columns[0] ||
+      null
+    );
+  }, [profile, selectedColumnName]);
+
   if (loading) {
     return (
-      <div className="container py-20 flex flex-col items-center justify-center gap-3">
+      <div className="container py-24 flex flex-col items-center justify-center gap-3">
         <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground font-medium">Loading dataset details...</p>
+        <p className="text-sm text-muted-foreground font-medium">
+          Profiling dataset and calculating statistical distributions with DuckDB...
+        </p>
       </div>
     );
   }
 
-  if (error || !dataset) {
+  if (error || !dataset || !profile) {
     return (
-      <div className="container py-12 max-w-xl text-center space-y-4">
+      <div className="container py-16 max-w-xl text-center space-y-4">
         <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
           <AlertCircle className="h-6 w-6" />
         </div>
-        <h2 className="text-xl font-bold">Failed to Load Dataset</h2>
-        <p className="text-xs text-muted-foreground">{error || "Dataset not found."}</p>
-        <Link to="/datasets">
-          <Button variant="outline" size="sm" className="gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Datasets
+        <h2 className="text-xl font-bold">Failed to Load Profile</h2>
+        <p className="text-xs text-muted-foreground">{error || "Dataset or profile not accessible."}</p>
+        <div className="flex items-center justify-center gap-2 pt-2">
+          <Button variant="outline" size="sm" onClick={() => fetchDatasetAndProfile(false)} className="gap-1.5">
+            <RefreshCw className="h-3.5 w-3.5" />
+            Retry
           </Button>
-        </Link>
+          <Link to="/datasets">
+            <Button variant="ghost" size="sm" className="gap-1.5">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to Datasets
+            </Button>
+          </Link>
+        </div>
       </div>
     );
   }
@@ -114,7 +162,7 @@ export function DatasetDetailPage() {
 
   return (
     <div className="container py-8 space-y-8 max-w-7xl">
-      {/* Navigation & Header */}
+      {/* Header and Actions */}
       <div className="space-y-4 border-b pb-6">
         <div className="flex items-center justify-between">
           <Link
@@ -124,16 +172,28 @@ export function DatasetDetailPage() {
             <ArrowLeft className="h-4 w-4" />
             Back to Datasets
           </Link>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDelete}
-            disabled={deleting}
-            className="text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-1.5"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            Delete Dataset
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fetchDatasetAndProfile(true)}
+              disabled={refreshing}
+              className="text-xs gap-1.5"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Re-profiling..." : "Refresh Profile"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 gap-1.5"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete Dataset
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -155,172 +215,237 @@ export function DatasetDetailPage() {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Ready for analysis
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-600 dark:text-blue-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+              Phase 4: Profile Active
             </span>
           </div>
         </div>
       </div>
 
-      {/* Dataset Overview Metrics Cards */}
+      {/* Dataset Summary KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Total Records */}
         <Card className="border shadow-sm">
-          <CardHeader className="p-4 pb-2">
+          <CardHeader className="p-4 pb-1">
             <CardDescription className="text-[11px] flex items-center gap-1.5 font-medium">
               <Hash className="h-3.5 w-3.5 text-primary" />
               Total Records
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-xl font-bold text-foreground">
-              {dataset.row_count?.toLocaleString() ?? "—"}
+          <CardContent className="p-4 pt-1">
+            <div className="text-2xl font-bold text-foreground">
+              {profile.total_rows.toLocaleString()}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Rows inspected</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Rows analyzed</p>
           </CardContent>
         </Card>
 
+        {/* Total Columns */}
         <Card className="border shadow-sm">
-          <CardHeader className="p-4 pb-2">
+          <CardHeader className="p-4 pb-1">
             <CardDescription className="text-[11px] flex items-center gap-1.5 font-medium">
               <Columns3 className="h-3.5 w-3.5 text-primary" />
               Total Columns
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-xl font-bold text-foreground">
-              {dataset.column_count?.toLocaleString() ?? "—"}
+          <CardContent className="p-4 pt-1">
+            <div className="text-2xl font-bold text-foreground">
+              {profile.total_columns}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Discovered features</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border shadow-sm">
-          <CardHeader className="p-4 pb-2">
-            <CardDescription className="text-[11px] flex items-center gap-1.5 font-medium">
-              <HardDrive className="h-3.5 w-3.5 text-primary" />
-              Storage Size
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-xl font-bold text-foreground">
-              {formatFileSize(dataset.file_size)}
-            </div>
-            <p className="text-[10px] font-mono text-muted-foreground truncate mt-0.5" title={dataset.original_filename}>
-              {dataset.original_filename}
+            <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+              {profile.numeric_columns} num · {profile.categorical_columns} cat · {profile.date_columns} date
             </p>
           </CardContent>
         </Card>
 
+        {/* Missing Values */}
         <Card className="border shadow-sm">
-          <CardHeader className="p-4 pb-2">
+          <CardHeader className="p-4 pb-1">
             <CardDescription className="text-[11px] flex items-center gap-1.5 font-medium">
-              <Calendar className="h-3.5 w-3.5 text-primary" />
-              Ingestion Timestamp
+              <AlertCircle className="h-3.5 w-3.5 text-amber-500" />
+              Missing Values
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="text-sm font-semibold text-foreground truncate mt-1">
-              {uploadedDate}
+          <CardContent className="p-4 pt-1">
+            <div className={`text-2xl font-bold ${profile.total_missing_values > 0 ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>
+              {profile.total_missing_values.toLocaleString()}
             </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">DuckDB verified</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {profile.missing_value_percentage}% overall null rate
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Duplicate Rows */}
+        <Card className="border shadow-sm">
+          <CardHeader className="p-4 pb-1">
+            <CardDescription className="text-[11px] flex items-center gap-1.5 font-medium">
+              <Copy className="h-3.5 w-3.5 text-primary" />
+              Duplicate Rows
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-1">
+            <div className={`text-2xl font-bold ${profile.duplicate_rows > 0 ? "text-amber-600 dark:text-amber-400" : "text-foreground"}`}>
+              {profile.duplicate_rows.toLocaleString()}
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              {profile.duplicate_row_percentage}% identical rows
+            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Discovered Columns Table */}
-      <Card className="border shadow-sm">
-        <CardHeader className="border-b pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <CardTitle className="text-base font-semibold">
-                Column Schema & Distributions
+      {/* Secondary Meta Badges */}
+      <div className="flex flex-wrap items-center gap-3 p-3 rounded-lg border bg-muted/20 text-xs">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <HardDrive className="h-3.5 w-3.5 text-primary" />
+          <span>Size: <strong className="text-foreground">{formatFileSize(profile.file_size)}</strong></span>
+        </div>
+        <span className="text-muted-foreground">•</span>
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <CheckCircle className="h-3.5 w-3.5 text-emerald-500" />
+          <span>Unique Columns: <strong className="text-foreground">{profile.unique_value_columns}</strong> (100% distinct)</span>
+        </div>
+        <span className="text-muted-foreground">•</span>
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Calendar className="h-3.5 w-3.5 text-primary" />
+          <span>Ingested: <strong className="text-foreground">{uploadedDate}</strong></span>
+        </div>
+      </div>
+
+      {/* Missing Values Chart */}
+      <MissingValuesChart columns={profile.columns} />
+
+      {/* Interactive Column Inspector and Schema Table */}
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+            Column Profiles & Schema
+          </h2>
+          <p className="text-xs text-muted-foreground">
+            Select any column in the table to inspect its statistical distributions, quantiles, and frequencies.
+          </p>
+        </div>
+
+        {/* Selected Column Detail Panel */}
+        {selectedColumn && (
+          <ColumnProfileInspector
+            column={selectedColumn}
+            totalRows={profile.total_rows}
+          />
+        )}
+
+        {/* Columns Overview Table */}
+        <Card className="border shadow-sm">
+          <CardHeader className="p-4 border-b">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Layers className="h-4 w-4 text-primary" />
+                Discovered Columns ({profile.columns.length})
               </CardTitle>
-              <CardDescription className="text-xs">
-                In-memory column profiling calculated by DuckDB during ingestion.
-              </CardDescription>
+              <span className="text-[11px] text-muted-foreground">
+                Click a row to inspect
+              </span>
             </div>
-            <span className="text-xs font-mono text-muted-foreground">
-              {dataset.columns.length} columns found
-            </span>
-          </div>
-        </CardHeader>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="border-b bg-muted/30 text-muted-foreground font-mono uppercase text-[10px]">
+                  <tr>
+                    <th className="py-2.5 px-4 font-semibold">#</th>
+                    <th className="py-2.5 px-4 font-semibold">Column</th>
+                    <th className="py-2.5 px-4 font-semibold">Type</th>
+                    <th className="py-2.5 px-4 font-semibold">Category</th>
+                    <th className="py-2.5 px-4 text-right font-semibold">Null %</th>
+                    <th className="py-2.5 px-4 text-right font-semibold">Distinct</th>
+                    <th className="py-2.5 px-4 text-right font-semibold">Unique %</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {profile.columns.map((col, idx) => {
+                    const isSelected = selectedColumn?.column_name === col.column_name;
+                    const hasNulls = col.null_count > 0;
+                    return (
+                      <tr
+                        key={col.column_name}
+                        onClick={() => setSelectedColumnName(col.column_name)}
+                        className={`cursor-pointer transition-colors ${
+                          isSelected
+                            ? "bg-primary/10 border-l-4 border-primary font-medium"
+                            : "hover:bg-muted/30"
+                        }`}
+                      >
+                        <td className="py-2.5 px-4 font-mono text-muted-foreground text-[11px]">
+                          {idx + 1}
+                        </td>
+                        <td className="py-2.5 px-4 font-medium font-mono text-foreground">
+                          {col.column_name}
+                        </td>
+                        <td className="py-2.5 px-4">
+                          <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-muted text-foreground">
+                            {col.data_type}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-4">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-medium uppercase font-mono ${
+                              col.inferred_category === "numeric"
+                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                : col.inferred_category === "categorical"
+                                ? "bg-purple-500/10 text-purple-600 dark:text-purple-400"
+                                : col.inferred_category === "date"
+                                ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {col.inferred_category}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-4 text-right font-mono">
+                          <span
+                            className={
+                              hasNulls
+                                ? "text-amber-600 dark:text-amber-400 font-semibold"
+                                : "text-muted-foreground"
+                            }
+                          >
+                            {col.null_percentage}% ({col.null_count})
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-4 text-right font-mono font-medium text-foreground">
+                          {col.distinct_count.toLocaleString()}
+                        </td>
+                        <td className="py-2.5 px-4 text-right font-mono text-muted-foreground">
+                          {col.unique_percentage}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="border-b bg-muted/30 text-muted-foreground font-mono uppercase text-[10px]">
-                <tr>
-                  <th className="py-3 px-4 font-semibold">#</th>
-                  <th className="py-3 px-4 font-semibold">Column</th>
-                  <th className="py-3 px-4 font-semibold">DuckDB Type</th>
-                  <th className="py-3 px-4 text-right font-semibold">Nulls</th>
-                  <th className="py-3 px-4 text-right font-semibold">Null %</th>
-                  <th className="py-3 px-4 text-right font-semibold">Distinct Values</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {dataset.columns.map((col, idx) => {
-                  const hasNulls = col.null_count > 0;
-                  return (
-                    <tr
-                      key={col.id}
-                      className="hover:bg-muted/20 transition-colors"
-                    >
-                      <td className="py-3 px-4 font-mono text-muted-foreground text-[11px]">
-                        {idx + 1}
-                      </td>
-                      <td className="py-3 px-4 font-medium text-foreground font-mono">
-                        {col.column_name}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-muted text-foreground">
-                          {col.data_type}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono">
-                        <span className={hasNulls ? "text-amber-600 dark:text-amber-400 font-semibold" : "text-muted-foreground"}>
-                          {col.null_count.toLocaleString()}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono">
-                        <span
-                          className={`inline-flex items-center gap-1 ${
-                            hasNulls
-                              ? "text-amber-600 dark:text-amber-400 font-semibold"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {col.null_percentage.toFixed(1)}%
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono font-medium text-foreground">
-                        {col.distinct_count.toLocaleString()}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Future Engine Roadmap Placeholder */}
+      {/* Analytical Roadmap Notice */}
       <Card className="border border-dashed bg-muted/10">
-        <CardHeader className="pb-2">
+        <CardHeader className="p-4 pb-2">
           <div className="flex items-center gap-2 text-primary font-semibold text-xs tracking-wider uppercase">
             <Sparkles className="h-4 w-4" />
             Upcoming Analytical Stages
           </div>
           <CardTitle className="text-sm font-semibold">
-            Quality Analysis & Anomaly Isolation
+            Quality Engine & Anomaly Detection Pipeline
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="p-4 pt-1 space-y-2">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Quality analysis will appear here after the profiling engine is enabled in Phase 4. Automated multi-rule validation (Phase 5), composite 0–100 reliability scoring (Phase 6), and Isolation Forest anomaly detection (Phase 7) will evaluate this dataset.
+            Phase 4 statistical profiling is now active. Subsequent phases will build upon these distributions:
+            Rule-based data quality checks (Phase 5), 0–100 reliability scoring (Phase 6), Isolation Forest anomaly detection (Phase 7), and AI explanations (Phase 9).
           </p>
         </CardContent>
       </Card>

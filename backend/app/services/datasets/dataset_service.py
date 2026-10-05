@@ -154,8 +154,8 @@ class DatasetService:
         user_workspace_ids = {w.id for w in user.workspaces}
         if dataset.workspace_id not in user_workspace_ids:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Access forbidden: you do not have access to this dataset.",
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Dataset not found.",
             )
 
         return dataset

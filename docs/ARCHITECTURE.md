@@ -46,9 +46,26 @@ The system follows a clean modular monolithic architecture designed for clear se
 - **Security & Session**: Direct `bcrypt` password hashing, stateless `PyJWT` tokens (`HS256`, 24h expiration), and `OAuth2PasswordBearer` dependency extraction.
 - **Storage Abstraction**: `LocalStorageService` handling chunked file streaming, max file size enforcement (50 MB configurable), sanitized UUID filename generation, and strict path traversal protection.
 - **Analytical Ingestion**: `DuckDBInspectionService` reading CSV and Parquet files in-process directly from disk to infer schemas, calculate nulls, null percentages, and distinct counts without inserting raw data into PostgreSQL.
+- **Profiling Engine**: `ProfilingService` leveraging embedded DuckDB to compute dataset-level summary metrics (duplicate rows, cell completeness, column types) and column-level distributions (numeric min/max/mean/median/stddev/histograms, categorical top 5 frequencies, and date boundaries/future timestamps).
+- **Profiling Architecture Flow**:
+  ```
+  Frontend (Dataset Detail Screen)
+     │ GET /api/datasets/{id}/profile (Bearer JWT)
+     ▼
+  FastAPI (Datasets API Router)
+     │ Scopes workspace ownership & passes Dataset model
+     ▼
+  Profiling Service (Domain Engine)
+     │ Resolves sanitized file path on disk
+     ▼
+  Embedded DuckDB (In-Process OLAP)
+     │ Direct SQL execution: read_csv_auto() / read_parquet()
+     ▼
+  Physical Storage (CSV / Parquet in data/uploads/)
+  ```
 - **Modular Services**:
   - `datasets/`: Ingestion, storage orchestration, DuckDB analytical inspection, and CRUD.
-  - `profiling/`: Statistical schema inference, quantiles, and distribution metrics (Phase 4).
+  - `profiling/`: Statistical schema inference, quantiles, distributions, and frequencies (Phase 4).
   - `quality/`: Rule engine evaluating completeness, uniqueness, ranges, and schema drift (Phase 5).
   - `analytics/`: Aggregate metric generation and data health indexing (Phase 8).
   - `anomaly/`: Scikit-learn `IsolationForest` unsupervised outlier detection (Phase 7).

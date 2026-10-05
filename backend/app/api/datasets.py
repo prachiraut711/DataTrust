@@ -7,7 +7,9 @@ from app.api.deps import get_current_user
 from app.database.session import get_db
 from app.models.user import User
 from app.schemas.dataset import DatasetDetailResponse, DatasetResponse
+from app.schemas.profile import DatasetProfileResponse
 from app.services.datasets.dataset_service import dataset_service
+from app.services.profiling.profiling_service import profiling_service
 
 router = APIRouter(prefix="/datasets", tags=["Datasets"])
 
@@ -63,6 +65,21 @@ def get_dataset(
     """Retrieve detailed metadata and column-level metrics for a specific dataset."""
     dataset = dataset_service.get_dataset(db=db, user=current_user, dataset_id=dataset_id)
     return DatasetDetailResponse.model_validate(dataset)
+
+
+@router.get(
+    "/{dataset_id}/profile",
+    response_model=DatasetProfileResponse,
+    summary="Get statistical profile of dataset",
+)
+def get_dataset_profile(
+    dataset_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> DatasetProfileResponse:
+    """Compute and retrieve comprehensive statistical profile including distributions, quantiles, and frequencies."""
+    dataset = dataset_service.get_dataset(db=db, user=current_user, dataset_id=dataset_id)
+    return profiling_service.profile_dataset(dataset)
 
 
 @router.delete(

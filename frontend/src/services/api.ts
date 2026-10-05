@@ -1,5 +1,6 @@
 import type { AuthResponse, User } from "@/types/auth";
 import type { Dataset, DatasetDetail } from "@/types/dataset";
+import type { DatasetProfileResponse } from "@/types/profile";
 
 export interface HealthResponse {
   status: string;
@@ -127,3 +128,17 @@ export async function deleteDatasetApi(
   });
   return handleResponse<{ status: string; message: string }>(response);
 }
+
+export async function getDatasetProfileApi(
+  token: string,
+  id: string
+): Promise<DatasetProfileResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/datasets/${id}/profile`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+  return handleResponse<DatasetProfileResponse>(response);
+}
+
