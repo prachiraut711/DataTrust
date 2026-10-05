@@ -1,6 +1,13 @@
 import type { AuthResponse, User } from "@/types/auth";
 import type { Dataset, DatasetDetail } from "@/types/dataset";
 import type { DatasetProfileResponse } from "@/types/profile";
+import type {
+  QualityEvaluationResponse,
+  QualityRule,
+  QualityRuleCreate,
+  QualityRuleUpdate,
+} from "@/types/quality";
+
 
 export interface HealthResponse {
   status: string;
@@ -141,4 +148,88 @@ export async function getDatasetProfileApi(
   });
   return handleResponse<DatasetProfileResponse>(response);
 }
+
+export async function getQualityRulesApi(
+  token: string,
+  datasetId: string
+): Promise<QualityRule[]> {
+  const response = await fetch(`${API_BASE_URL}/api/datasets/${datasetId}/quality-rules`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+  return handleResponse<QualityRule[]>(response);
+}
+
+export async function createQualityRuleApi(
+  token: string,
+  datasetId: string,
+  rule: QualityRuleCreate
+): Promise<QualityRule> {
+  const response = await fetch(`${API_BASE_URL}/api/datasets/${datasetId}/quality-rules`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify(rule),
+  });
+  return handleResponse<QualityRule>(response);
+}
+
+export async function updateQualityRuleApi(
+  token: string,
+  datasetId: string,
+  ruleId: string,
+  rule: QualityRuleUpdate
+): Promise<QualityRule> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/datasets/${datasetId}/quality-rules/${ruleId}`,
+    {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(rule),
+    }
+  );
+  return handleResponse<QualityRule>(response);
+}
+
+export async function deleteQualityRuleApi(
+  token: string,
+  datasetId: string,
+  ruleId: string
+): Promise<{ status: string; message: string }> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/datasets/${datasetId}/quality-rules/${ruleId}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    }
+  );
+  return handleResponse<{ status: string; message: string }>(response);
+}
+
+export async function evaluateQualityRulesApi(
+  token: string,
+  datasetId: string
+): Promise<QualityEvaluationResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/datasets/${datasetId}/quality/evaluate`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+  return handleResponse<QualityEvaluationResponse>(response);
+}
+
 

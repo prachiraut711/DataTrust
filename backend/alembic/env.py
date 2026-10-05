@@ -19,8 +19,9 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Set database URL from application settings to avoid hardcoding secrets in alembic.ini
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Set database URL from environment or application settings
+db_url = os.environ.get("DATABASE_URL") or config.get_main_option("sqlalchemy.url") or settings.DATABASE_URL
+config.set_main_option("sqlalchemy.url", db_url)
 
 target_metadata = Base.metadata
 
@@ -42,7 +43,8 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode."""
     configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = settings.DATABASE_URL
+    configuration["sqlalchemy.url"] = config.get_main_option("sqlalchemy.url") or settings.DATABASE_URL
+
 
     connectable = engine_from_config(
         configuration,

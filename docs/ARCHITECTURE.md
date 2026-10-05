@@ -63,10 +63,29 @@ The system follows a clean modular monolithic architecture designed for clear se
      ▼
   Physical Storage (CSV / Parquet in data/uploads/)
   ```
+- **Quality Rules Architecture Flow**:
+  ```
+  Dataset (Workspace scoped)
+     │
+     ▼
+  Quality Rule Configuration (PostgreSQL dataset_quality_rules)
+     │
+     ▼
+  Quality Service (Dynamic Validation Engine)
+     │
+     ▼
+  Embedded DuckDB (Vectorized Aggregation on raw CSV/Parquet)
+     │
+     ▼
+  Validation Results (PASS / FAIL / SKIPPED with violating row counts)
+     │
+     ▼
+  Quality Score ((passed_checks / applicable_checks) * 100)
+  ```
 - **Modular Services**:
   - `datasets/`: Ingestion, storage orchestration, DuckDB analytical inspection, and CRUD.
   - `profiling/`: Statistical schema inference, quantiles, distributions, and frequencies (Phase 4).
-  - `quality/`: Rule engine evaluating completeness, uniqueness, ranges, and schema drift (Phase 5).
+  - `quality/`: Configurable validation rules, dynamic DuckDB execution, Quality Score, and issue identification (Phase 5).
   - `analytics/`: Aggregate metric generation and data health indexing (Phase 8).
   - `anomaly/`: Scikit-learn `IsolationForest` unsupervised outlier detection (Phase 7).
   - `ai/`: Gemini API integration explaining detected anomalies in plain language (Phase 9).

@@ -13,6 +13,8 @@ import {
   Sparkles,
   Layers,
   CheckCircle,
+  BarChart2,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +34,7 @@ import type { DatasetDetail } from "@/types/dataset";
 import type { DatasetProfileResponse } from "@/types/profile";
 import { MissingValuesChart } from "@/components/profiling/MissingValuesChart";
 import { ColumnProfileInspector } from "@/components/profiling/ColumnProfileInspector";
+import { QualityRulesSection } from "@/components/quality/QualityRulesSection";
 
 export function DatasetDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,6 +44,7 @@ export function DatasetDetailPage() {
   const [dataset, setDataset] = useState<DatasetDetail | null>(null);
   const [profile, setProfile] = useState<DatasetProfileResponse | null>(null);
   const [selectedColumnName, setSelectedColumnName] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"profiling" | "quality">("profiling");
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -216,16 +220,45 @@ export function DatasetDetailPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-600 dark:text-blue-400">
-              <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
-              Phase 4: Profile Active
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Phase 5: Quality Engine Active
             </span>
           </div>
         </div>
       </div>
 
-      {/* Dataset Summary KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Feature Navigation Tabs */}
+      <div className="flex items-center gap-1 border-b">
+        <button
+          onClick={() => setActiveTab("profiling")}
+          className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            activeTab === "profiling"
+              ? "border-primary text-primary font-bold"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <BarChart2 className="h-4 w-4" />
+          Statistical Profiling
+        </button>
+        <button
+          onClick={() => setActiveTab("quality")}
+          className={`px-4 py-2.5 text-xs font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            activeTab === "quality"
+              ? "border-primary text-primary font-bold"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <ShieldCheck className="h-4 w-4" />
+          Data Quality Rules
+        </button>
+      </div>
+
+      {/* Tab 1: Statistical Profiling */}
+      {activeTab === "profiling" && (
+        <div className="space-y-8">
+          {/* Dataset Summary KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Total Records */}
         <Card className="border shadow-sm">
           <CardHeader className="p-4 pb-1">
@@ -430,6 +463,18 @@ export function DatasetDetailPage() {
           </CardContent>
         </Card>
       </div>
+        </div>
+      )}
+
+      {/* Tab 2: Data Quality Rules Engine */}
+      {activeTab === "quality" && token && (
+        <QualityRulesSection
+          token={token}
+          datasetId={id!}
+          columns={profile.columns}
+          totalRows={profile.total_rows}
+        />
+      )}
 
       {/* Analytical Roadmap Notice */}
       <Card className="border border-dashed bg-muted/10">
@@ -439,16 +484,17 @@ export function DatasetDetailPage() {
             Upcoming Analytical Stages
           </div>
           <CardTitle className="text-sm font-semibold">
-            Quality Engine & Anomaly Detection Pipeline
+            Composite Reliability Scoring & Anomaly Detection Pipeline
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-1 space-y-2">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Phase 4 statistical profiling is now active. Subsequent phases will build upon these distributions:
-            Rule-based data quality checks (Phase 5), 0–100 reliability scoring (Phase 6), Isolation Forest anomaly detection (Phase 7), and AI explanations (Phase 9).
+            Phase 4 (Profiling Engine) and Phase 5 (Quality Rules Engine) are now active. Subsequent phases will build upon these validations:
+            Objective 0–100 reliability scoring (Phase 6), Isolation Forest unsupervised outlier detection (Phase 7), historical run regression (Phase 8), and Gemini AI explanations (Phase 9).
           </p>
         </CardContent>
       </Card>
     </div>
   );
 }
+

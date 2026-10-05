@@ -8,19 +8,32 @@ DataTrust is an incremental SaaS platform designed to determine whether CSV and 
 
 ## Project Status
 
-**Phase 4 — Dataset Profiling Engine: Completed**
+**Phase 5 — Data Quality Rules Engine: Completed**
 
-The analytical profiling engine, DuckDB statistical distribution calculations, Pydantic response schemas, authenticated profiling endpoint (`GET /api/datasets/{id}/profile`), Recharts missing-value distribution, column inspector, and value histograms are fully operational and verified.
+The data quality rules engine, PostgreSQL configuration persistence (`dataset_quality_rules`), Alembic migration `004_create_dataset_quality_rules`, dynamic DuckDB SQL evaluation, Quality Score computation, and interactive rule management & issue reporting UI are fully operational and verified.
 
-- **Dataset-Level Statistics**: Fast in-process computation of total rows, columns, file size, exact duplicate row counts and percentages, total missing values, overall null rates, and column category tallies.
-- **Column-Level Distribution Metrics**:
-  - *Numeric Columns*: Minimum, maximum, arithmetic mean, median, standard deviation, and 5-bin value distribution histograms.
-  - *Categorical / Text Columns*: Distinct cardinality, top 5 value frequencies and ratios, and most common value resolution.
-  - *Date / Temporal Columns*: Earliest timestamp, latest timestamp, and detection of future-dated anomalies.
-- **Frontend Profiling Experience**: Interactive column inspector, dynamic missing values chart, frequency rankings, responsive column grid, and manual profile refresh.
-- **Vectorized DuckDB OLAP Queries**: Direct querying of `.csv` and `.parquet` storage without loading raw datasets into Python memory.
+- **Configurable Quality Assertions**: Declarative rule creation and management supporting required fields (`not_null`), uniqueness (`unique`), numeric bounds (`numeric_range`), permitted sets (`allowed_values`), regex email format (`email_format`), and temporal boundaries (`no_future_dates`).
+- **Dynamic DuckDB Rule Execution**: Real-time evaluation against raw CSV and Parquet files without database bloat or storing individual row-level violations in PostgreSQL.
+- **Objective Quality Score**: Roll-up index calculating `(passed_checks / applicable_checks) * 100` alongside aggregate violating row counts.
+- **Rule Management & Issues UI**: Interactive rules table, inline enable/disable toggles, rule creation/edit dialogs, and highlighted quality issue cards with actionable error explanations.
 
 See [PROJECT_STATUS.md](file:///D:/prachi/Antigravity-Projects/DataTrust/PROJECT_STATUS.md) for current progress and upcoming phase milestones.
+
+---
+
+## Data Quality Rules
+
+DataTrust allows data teams to configure declarative validation assertions against dataset columns:
+
+1. **Required / Not Null (`not_null`)**: Verifies that values must not be missing or empty (`column IS NOT NULL`).
+2. **Unique Constraints (`unique`)**: Verifies that non-null values are distinct, reporting exact duplicate counts.
+3. **Numeric Range (`numeric_range`)**: Validates that numerical values fall within explicit min and/or max boundaries (`column >= min AND column <= max`).
+4. **Allowed Categories (`allowed_values`)**: Asserts that values belong to an authorized permitted set (`column IN (...)`).
+5. **Email Format (`email_format`)**: Validates text against standard email syntax via SQL regular expressions.
+6. **No Future Dates (`no_future_dates`)**: Asserts that temporal timestamps occur in the past or present (`column <= CURRENT_TIMESTAMP`).
+
+DataTrust calculates a **Quality Score** (`passed_checks / applicable_checks * 100`) and reports row violation metrics without copying raw data.
+
 
 ---
 
@@ -73,7 +86,7 @@ DataTrust delivers a clean, high-performance, developer-friendly reliability eng
 - **User Authentication & Workspaces** *(Completed - Phase 2)*: Email/password authentication, bcrypt hashing, stateless JWTs, and automatic workspace creation.
 - **Dataset Ingestion & DuckDB Inspection** *(Completed - Phase 3)*: Upload CSV/Parquet, sanitized storage, DuckDB vectorized profiling (rows, types, nulls, distincts), and schema browser.
 - **Advanced Statistical Profiling** *(Completed - Phase 4)*: In-process calculation of quantiles, min, max, mean, standard deviation, categorical frequencies, missing value distributions, and interactive Recharts visualizations.
-- **Data Quality Engine** *(Planned - Phase 5)*: Configurable declarative assertions (completeness, uniqueness, range boundaries, regex patterns).
+- **Data Quality Engine** *(Completed - Phase 5)*: Configurable declarative assertions (not null, unique, range boundaries, permitted sets, email regex, no future dates), dynamic DuckDB validation, Quality Score, and issues UI.
 - **DataTrust Reliability Score** *(Planned - Phase 6)*: An objective 0–100 weighted index communicating operational readiness for machine learning.
 - **Unsupervised Anomaly Detection** *(Planned - Phase 7)*: Isolation Forest outlier scoring on multivariate distributions.
 - **Run-over-Run Quality Analytics** *(Planned - Phase 8)*: Historical tracking of dataset runs to identify quality regressions and data drift.
@@ -131,7 +144,7 @@ For an in-depth breakdown of database separation, schema models, and data lifecy
 - **ORM / Persistence**: SQLAlchemy 2.0 with PostgreSQL drivers (`psycopg` & `psycopg2-binary`)
 - **Database Migrations**: Alembic
 - **Security & Authentication**: `bcrypt` (salted password hashing), `PyJWT` (stateless tokens)
-- **Testing**: Pytest & HTTPX TestClient (26 automated tests)
+- **Testing**: Pytest & HTTPX TestClient (32 automated tests)
 
 ### Data & Machine Learning (Planned Phases)
 - **Data Manipulation**: Pandas, NumPy
