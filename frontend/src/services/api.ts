@@ -11,6 +11,7 @@ import type { AnomalyDetectionResponse } from "@/types/anomaly";
 import type { ReliabilityScoreResponse } from "@/types/reliability";
 import type { QualityRun } from "@/types/qualityRun";
 import type { AIQualityExplanation } from "@/types/ai";
+import type { DashboardSummaryResponse } from "@/types/dashboard";
 
 
 export interface HealthResponse {
@@ -338,6 +339,18 @@ export async function getAIQualityExplanationApi(
     }
   );
   return handleResponse<AIQualityExplanation>(response);
+}
+
+export async function getDashboardSummaryApi(
+  token: string
+): Promise<DashboardSummaryResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/dashboard/summary`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+  return handleResponse<DashboardSummaryResponse>(response);
 }
 
 

@@ -2,18 +2,14 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FileSpreadsheet,
-  Cpu,
-  CheckCircle2,
-  AlertTriangle,
-  Server,
-  RefreshCw,
-  FolderGit2,
   Database,
-  ArrowUpRight,
-  Layers,
-  Mail,
-  Calendar,
-  UserCheck,
+  Award,
+  AlertTriangle,
+  History,
+  RefreshCw,
+  Plus,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,296 +17,319 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
 } from "@/components/ui/card";
-import { checkBackendHealth, type HealthResponse } from "@/services/api";
 import { useAuth } from "@/context/AuthContext";
+import { getDashboardSummaryApi } from "@/services/api";
+import type { DashboardSummaryResponse } from "@/types/dashboard";
+import { ReliabilityOverviewChart } from "@/components/dashboard/ReliabilityOverviewChart";
+import { ReliabilityDistributionChart } from "@/components/dashboard/ReliabilityDistributionChart";
+import { RecentActivity } from "@/components/dashboard/RecentActivity";
+import { NeedsAttention } from "@/components/dashboard/NeedsAttention";
 
 export function DashboardPage() {
-  const { user, activeWorkspace } = useAuth();
-  const [health, setHealth] = useState<HealthResponse | null>(null);
+  const { user, activeWorkspace, token } = useAuth();
+  const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchHealth = async () => {
-    setLoading(true);
+  const fetchSummary = async (isManual = false) => {
+    if (!token) return;
+    if (isManual) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
+
     try {
-      const data = await checkBackendHealth();
-      setHealth(data);
+      const data = await getDashboardSummaryApi(token);
+      setSummary(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to connect to backend");
+      setError(err instanceof Error ? err.message : "Failed to load dashboard overview.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
   useEffect(() => {
-    fetchHealth();
-  }, []);
+    fetchSummary();
+  }, [token]);
 
-  const pipelineCards = [
-    {
-      title: "Uploaded Datasets",
-      icon: FileSpreadsheet,
-      status: "Operational",
-      detail: "CSV and Parquet file upload with local storage and DuckDB column profiling.",
-    },
-    {
-      title: "DuckDB Profiling",
-      icon: Cpu,
-      status: "Awaiting Phase 4",
-      detail: "High-speed analytical schema discovery, null distributions, and quantiles.",
-    },
-    {
-      title: "Quality Suite",
-      icon: CheckCircle2,
-      status: "Awaiting Phase 5",
-      detail: "Configurable assertions, rule pass-rates, and multi-column integrity checks.",
-    },
-    {
-      title: "Anomaly Isolation",
-      icon: AlertTriangle,
-      status: "Awaiting Phase 7",
-      detail: "Scikit-learn Isolation Forest unsupervised detection for multivariate outliers.",
-    },
-  ];
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  };
 
-  const formattedDate = user?.created_at
-    ? new Date(user.created_at).toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      })
-    : "Active";
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return "text-emerald-600 dark:text-emerald-400";
+    if (score >= 75) return "text-blue-600 dark:text-blue-400";
+    if (score >= 60) return "text-amber-600 dark:text-amber-400";
+    return "text-rose-600 dark:text-rose-400";
+  };
 
-  return (
-    <div className="container py-8 space-y-8 max-w-7xl">
-      {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-6">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Platform Dashboard
-            </h1>
-            <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-              Phase 3 Ingestion Active
-            </span>
-          </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            Authenticated workspace session, dataset ingestion, and health metrics.
+  // Loading Skeletons
+  if (loading) {
+    return (
+      <div className="container py-8 space-y-8 max-w-7xl">
+        <div className="space-y-2 border-b pb-6">
+          <div className="h-8 w-64 bg-muted animate-pulse rounded" />
+          <div className="h-4 w-96 bg-muted/60 animate-pulse rounded" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="border shadow-sm p-4 space-y-3">
+              <div className="h-4 w-28 bg-muted animate-pulse rounded" />
+              <div className="h-8 w-20 bg-muted/80 animate-pulse rounded" />
+              <div className="h-3 w-36 bg-muted/50 animate-pulse rounded" />
+            </Card>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="h-80 border shadow-sm p-4 bg-muted/20 animate-pulse" />
+          <Card className="h-80 border shadow-sm p-4 bg-muted/20 animate-pulse" />
+        </div>
+      </div>
+    );
+  }
+
+  // Error State
+  if (error || !summary) {
+    return (
+      <div className="container py-16 max-w-lg text-center space-y-4">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+          <AlertTriangle className="h-6 w-6" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground">Failed to Load Dashboard</h2>
+        <p className="text-xs text-muted-foreground">{error || "Unable to reach DataTrust API."}</p>
+        <Button size="sm" onClick={() => fetchSummary(true)} className="gap-2">
+          <RefreshCw className="h-3.5 w-3.5" />
+          Retry Loading
+        </Button>
+      </div>
+    );
+  }
+
+  // Brand-new empty workspace state
+  if (summary.total_datasets === 0) {
+    return (
+      <div className="container py-12 max-w-3xl space-y-8">
+        <div className="border-b pb-6 space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {getGreeting()}, {user?.full_name?.split(" ")[0] || "User"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Welcome to DataTrust — your data reliability & quality monitoring workspace.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <Card className="border border-dashed p-8 sm:p-12 text-center space-y-4 bg-muted/10 shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <Database className="h-7 w-7" />
+          </div>
+          <div className="space-y-1.5 max-w-md mx-auto">
+            <h2 className="text-lg font-bold tracking-tight text-foreground">
+              Welcome to DataTrust
+            </h2>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Upload your first CSV or Parquet dataset to start calculating automated statistical profiles,
+              configuring quality assertions, and tracking reliability scores.
+            </p>
+          </div>
+          <div className="pt-2 flex items-center justify-center gap-3">
+            <Link to="/datasets">
+              <Button size="sm" className="gap-1.5 font-semibold shadow-sm">
+                <Plus className="h-4 w-4" />
+                Upload Dataset
+              </Button>
+            </Link>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container py-8 space-y-8 max-w-7xl">
+      {/* Top Header & Quick Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b pb-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              {getGreeting()}, {user?.full_name?.split(" ")[0] || "User"}
+            </h1>
+            <span className="text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full bg-primary/10 text-primary">
+              {activeWorkspace?.name || "Workspace Overview"}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Monitor the health, quality rules compliance, and reliability of your datasets.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
           <Link to="/datasets">
-            <Button size="sm" className="gap-2">
-              <FileSpreadsheet className="h-4 w-4" />
-              Manage Datasets
+            <Button size="sm" className="gap-1.5 text-xs font-semibold shadow-sm">
+              <Plus className="h-3.5 w-3.5" />
+              Upload Dataset
+            </Button>
+          </Link>
+          <Link to="/datasets">
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs">
+              <FileSpreadsheet className="h-3.5 w-3.5" />
+              View All Datasets
             </Button>
           </Link>
           <Button
-            variant="outline"
+            variant="ghost"
             size="sm"
-            onClick={fetchHealth}
-            disabled={loading}
-            className="gap-2"
+            onClick={() => fetchSummary(true)}
+            disabled={refreshing}
+            className="text-xs gap-1.5 text-muted-foreground hover:text-foreground"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
-            Refresh Health
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
           </Button>
         </div>
       </div>
 
-      {/* Authenticated Workspace & User Identity Card */}
-      <Card className="border bg-card shadow-sm">
-        <CardHeader className="pb-3 border-b bg-muted/20">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <UserCheck className="h-4 w-4" />
-              </div>
-              <div>
-                <CardTitle className="text-base font-semibold text-foreground">
-                  {user?.full_name}
-                </CardTitle>
-                <CardDescription className="text-xs flex items-center gap-1.5 mt-0.5">
-                  <Mail className="h-3 w-3 text-muted-foreground" />
-                  {user?.email}
-                </CardDescription>
-              </div>
+      {/* 4 Summary KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* KPI 1: Total Datasets */}
+        <Card className="border shadow-sm">
+          <CardHeader className="p-4 pb-1">
+            <CardDescription className="text-xs font-medium flex items-center justify-between text-muted-foreground">
+              <span>Total Datasets</span>
+              <Database className="h-4 w-4 text-primary" />
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-1">
+            <div className="text-2xl font-bold text-foreground font-mono">
+              {summary.total_datasets}
             </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {summary.datasets.filter((d) => d.has_runs).length} analyzed ·{" "}
+              {summary.datasets.filter((d) => !d.has_runs).length} pending
+            </p>
+          </CardContent>
+        </Card>
 
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-1.5 rounded-md border bg-background px-3 py-1 text-xs">
-                <Layers className="h-3.5 w-3.5 text-primary" />
-                <span className="text-muted-foreground">Workspace:</span>
-                <span className="font-semibold text-foreground">
-                  {activeWorkspace?.name || "Default Workspace"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-          <div className="rounded-md border bg-background p-3 space-y-1">
-            <span className="text-muted-foreground uppercase font-mono text-[10px]">
-              Active Workspace ID
-            </span>
-            <div className="font-mono text-foreground truncate text-[11px]">
-              {activeWorkspace?.id || "N/A"}
-            </div>
-          </div>
-
-          <div className="rounded-md border bg-background p-3 space-y-1">
-            <span className="text-muted-foreground uppercase font-mono text-[10px]">
-              User ID
-            </span>
-            <div className="font-mono text-foreground truncate text-[11px]">
-              {user?.id || "N/A"}
-            </div>
-          </div>
-
-          <div className="rounded-md border bg-background p-3 space-y-1">
-            <span className="text-muted-foreground uppercase font-mono text-[10px] flex items-center gap-1">
-              <Calendar className="h-3 w-3 text-muted-foreground" />
-              Member Since
-            </span>
-            <div className="font-medium text-foreground text-[11px] mt-0.5">
-              {formattedDate}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Backend API Health Status Indicator */}
-      <Card className="border bg-card">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Server className="h-4 w-4 text-primary" />
-              <CardTitle className="text-sm font-semibold">
-                Backend System Status
-              </CardTitle>
-            </div>
-            {loading ? (
-              <span className="text-xs font-mono text-muted-foreground flex items-center gap-1.5">
-                <RefreshCw className="h-3 w-3 animate-spin" />
-                Checking API...
-              </span>
-            ) : health ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                Connected: {health.service}
-              </span>
+        {/* KPI 2: Average Reliability */}
+        <Card className="border shadow-sm">
+          <CardHeader className="p-4 pb-1">
+            <CardDescription className="text-xs font-medium flex items-center justify-between text-muted-foreground">
+              <span>Average Reliability</span>
+              <Award className="h-4 w-4 text-emerald-500" />
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-1">
+            {summary.average_reliability !== null ? (
+              <>
+                <div
+                  className={`text-2xl font-bold font-mono ${getScoreColor(
+                    summary.average_reliability
+                  )}`}
+                >
+                  {summary.average_reliability.toFixed(1)}
+                  <span className="text-xs text-muted-foreground font-normal ml-1">/ 100</span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Across latest dataset snapshots
+                </p>
+              </>
             ) : (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                Backend Offline (Local Dev)
-              </span>
+              <>
+                <div className="text-xl font-bold text-muted-foreground">No runs yet</div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Run an analysis to measure score
+                </p>
+              </>
             )}
-          </div>
-          <CardDescription className="text-xs">
-            Direct verification of <code className="text-foreground font-mono">GET /api/health</code> endpoint.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="text-xs text-muted-foreground">Pinging FastAPI service...</p>
-          ) : health ? (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
-              <div className="rounded-md border bg-muted/20 p-3">
-                <div className="text-[11px] text-muted-foreground uppercase font-mono">Status</div>
-                <div className="text-sm font-semibold text-foreground mt-0.5">{health.status}</div>
-              </div>
-              <div className="rounded-md border bg-muted/20 p-3">
-                <div className="text-[11px] text-muted-foreground uppercase font-mono">Service Name</div>
-                <div className="text-sm font-semibold text-foreground mt-0.5">{health.service}</div>
-              </div>
-              <div className="rounded-md border bg-muted/20 p-3">
-                <div className="text-[11px] text-muted-foreground uppercase font-mono">FastAPI Router</div>
-                <div className="text-sm font-semibold text-foreground mt-0.5">/api/health</div>
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p className="text-amber-600 dark:text-amber-400 font-medium">
-                {error || "Could not reach FastAPI server at http://localhost:8000."}
-              </p>
-              <p>
-                Start the backend server using{" "}
-                <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-foreground">
-                  uvicorn app.main:app --reload
-                </code>{" "}
-                inside the <code className="font-mono text-foreground">backend/</code> directory.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Subsystem Readiness Matrix */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-foreground">
-            Pipeline Subsystem Readiness
-          </h2>
-          <span className="text-xs text-muted-foreground">
-            Modular components scheduled for sequential implementation
-          </span>
-        </div>
+        {/* KPI 3: Datasets Needing Attention */}
+        <Card className="border shadow-sm">
+          <CardHeader className="p-4 pb-1">
+            <CardDescription className="text-xs font-medium flex items-center justify-between text-muted-foreground">
+              <span>Needing Attention</span>
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-1">
+            <div
+              className={`text-2xl font-bold font-mono ${
+                summary.datasets_needing_attention > 0
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-foreground"
+              }`}
+            >
+              {summary.datasets_needing_attention}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              {summary.datasets_needing_attention === 0
+                ? "All analyzed datasets >= 75"
+                : "Reliability score < 75"}
+            </p>
+          </CardContent>
+        </Card>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {pipelineCards.map((card, idx) => {
-            const Icon = card.icon;
-            return (
-              <Card key={idx} className="border bg-card/60">
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-foreground">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-muted/80 text-muted-foreground">
-                      {card.status}
-                    </span>
-                  </div>
-                  <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {card.detail}
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        {/* KPI 4: Recent Runs */}
+        <Card className="border shadow-sm">
+          <CardHeader className="p-4 pb-1">
+            <CardDescription className="text-xs font-medium flex items-center justify-between text-muted-foreground">
+              <span>Runs This Period</span>
+              <History className="h-4 w-4 text-primary" />
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-4 pt-1">
+            <div className="text-2xl font-bold text-foreground font-mono">
+              {summary.recent_runs}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Quality audits in the last 7 days
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Clean Workspace Shell Information */}
+      {/* Main Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ReliabilityOverviewChart datasets={summary.datasets} />
+        <ReliabilityDistributionChart distribution={summary.reliability_distribution} />
+      </div>
+
+      {/* Needs Attention Alert Section */}
+      <NeedsAttention datasets={summary.needs_attention} />
+
+      {/* Recent Activity Table Feed */}
+      <RecentActivity activity={summary.recent_activity} />
+
+      {/* Quick Action Footer Banner */}
       <Card className="border border-dashed bg-muted/10">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <FolderGit2 className="h-4 w-4 text-primary" />
-            <CardTitle className="text-sm font-semibold">
-              Phase 2: Authentication & Workspace Layer Active
-            </CardTitle>
+        <CardContent className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-foreground">
+                Continuous Reliability Auditing
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                Run automated quality checks, inspect Isolation Forest outliers, or consult Gemini AI on any dataset.
+              </p>
+            </div>
           </div>
-          <CardDescription className="text-xs">
-            User credentials, workspace provisioning, and JWT sessions are secured in PostgreSQL.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Phase 3 will add dataset file upload (CSV / Parquet), sanitized storage, and dataset metadata registration linked to your workspace.
-          </p>
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
-              <Database className="h-3.5 w-3.5" />
-              Users & Workspaces Migrated with Alembic
-              <ArrowUpRight className="h-3 w-3" />
-            </span>
-          </div>
+          <Link to="/datasets" className="shrink-0">
+            <Button size="sm" variant="outline" className="text-xs gap-1.5">
+              Explore All Datasets
+              <ArrowRight className="h-3 w-3" />
+            </Button>
+          </Link>
         </CardContent>
       </Card>
     </div>

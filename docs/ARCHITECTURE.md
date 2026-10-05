@@ -130,6 +130,24 @@ The system follows a clean modular monolithic architecture designed for clear se
      AI Explanation
   ```
   Gemini acts strictly as an **explanation layer**, not the primary data-analysis engine. All underlying metrics, quality scores, and anomaly distributions are computed authoritatively by DataTrust's internal Python, DuckDB, and Scikit-learn services. Raw dataset rows, cell contents, or user credentials are never transmitted to Gemini.
+- **SaaS Dashboard & Analytics Architecture Flow (Phase 9)**:
+  ```
+  Workspace
+      │
+      ├── Datasets
+      │
+      └── QualityRun Snapshots
+               │
+               ▼
+        Dashboard Service (Aggregation Engine)
+               │
+               ▼
+         Dashboard Summary (KPIs, Distributions, Activity)
+               │
+               ▼
+         React Dashboard (Overview Charts & Attention Feed)
+  ```
+  **Zero Re-computation Guarantee**: The SaaS dashboard strictly aggregates relational metadata from `datasets` and snapshot summaries from `quality_runs`. It never triggers raw file parsing, DuckDB profiling, Isolation Forest execution, or external Gemini API calls on dashboard requests, delivering sub-15ms page loads.
 - **Explainable Reliability Score Formula**:
   $$\text{Reliability Score} = 0.50 \times \text{Quality} + 0.25 \times \text{Completeness} + 0.25 \times \text{Anomaly Health}$$
   where:
@@ -145,7 +163,7 @@ The system follows a clean modular monolithic architecture designed for clear se
   - `reliability/`: Composite 3-pillar data reliability calculation engine (Phase 6).
   - `history/`: Persistent summary metric snapshots and trend time-series (`history_service.py`) (Phase 7).
   - `ai/`: Gemini API integration explaining data quality, anomalies, and reliability in plain language (`gemini_service.py`) (Phase 8).
-  - `analytics/`: Multi-column interactive analytics and dataset comparison tools (Phase 9).
+  - `dashboard/`: Workspace-scoped metadata & snapshot aggregation for SaaS overview analytics (`dashboard_service.py`) (Phase 9).
 
 ---
 

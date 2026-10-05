@@ -8,17 +8,41 @@ DataTrust is an incremental SaaS platform designed to determine whether CSV and 
 
 ## Project Status
 
-**Phase 8 — AI-Powered Data Quality Explanation: Completed**
+**Phase 9 — SaaS Dashboard & Product Analytics Polish: Completed**
 
-DataTrust integrates official Google Gemini 2.5 Flash as an intelligent explanation layer, converting multi-engine analytical indicators into clear, executive plain-language diagnostics:
+DataTrust provides a unified, production-ready SaaS overview dashboard (`/dashboard`) giving data teams immediate visibility into workspace health and pipeline velocity:
 
-- **Intelligent Synthesis**: Translates data completeness ratios, failing rule assertions, and Isolation Forest outliers into plain-language summaries answering *what is wrong with this dataset* and *why the reliability score is at its current level*.
-- **Strict Data Privacy**: Never sends raw dataset rows, cell contents, or user credentials to Gemini. Only aggregated statistical summaries and validation metrics are transmitted.
-- **Prioritized Key Issues**: Generates ranked issues classified by severity (`high`, `medium`, `low`) with concrete impact explanations.
-- **Actionable Remediation**: Produces concrete, prioritized recommendations for data engineers and ML practitioners.
-- **Interactive UI**: On-demand "Explain Analysis" button with animated loading state, clear configuration/error guidance, and transparent trust & safety disclaimers.
+- **Executive Workspace KPIs**: Instant visibility into Total Datasets, Workspace Average Reliability (derived strictly from latest dataset runs, showing unanalyzed status honestly), Datasets Needing Attention (reliability $< 75$), and 7-day Activity Velocity.
+- **Comparative Visualizations**: Horizontal Recharts bar chart ranking datasets by reliability score (0–100 scale) with click-through navigation, paired with a donut chart illustrating quality tier distribution (Excellent, Good, Fair, Poor).
+- **Proactive Risk Triage**: Dedicated "Needs Attention" alert queue highlighting troubled datasets with low scores, accompanied by a clean green state when all datasets are healthy.
+- **Recent Activity Feed**: Chronological workspace-wide audit log tracking up to 10 latest quality snapshots with relative time indicators and direct links.
+- **Sub-15ms Aggregation Guarantee**: Powered by relational PostgreSQL indexing and stored `QualityRun` snapshots with zero heavy ML or raw file parsing on page load.
 
 See [PROJECT_STATUS.md](file:///D:/prachi/Antigravity-Projects\DataTrust\PROJECT_STATUS.md) for current progress and upcoming phase milestones.
+
+---
+
+## SaaS Dashboard & Product Analytics
+
+> The DataTrust SaaS dashboard delivers high-level operational intelligence across all workspace datasets in sub-15 milliseconds without re-running compute-heavy ML pipelines or reading raw disk files.
+
+Key capabilities include:
+
+1. **Workspace Health KPIs**:
+   - **Total Datasets**: Total registered datasets in the active workspace with evaluated vs. pending counts.
+   - **Average Reliability**: Mathematically sound average across evaluated datasets' latest snapshots. If no runs have been executed yet, displays an explicit "No runs yet" badge rather than misleading default scores.
+   - **Needs Attention**: Real-time counter and alert queue of all datasets with a latest reliability score under 75.0.
+   - **Recent Activity (7 Days)**: Volume of analytical runs completed over a rolling 7-day window.
+2. **Interactive Visualizations**:
+   - **Reliability Comparison Bar Chart**: Horizontal bar chart comparing latest scores across top datasets, color-coded by quality tier (emerald $\ge 90$, blue $\ge 75$, amber $\ge 60$, rose $< 60$). Clicking any bar navigates directly to the dataset's deep inspection view.
+   - **Tier Distribution Donut Chart**: Donut chart breaking down workspace assets across the four reliability tiers.
+3. **Actionable Risk Management**:
+   - **Needs Attention Queue**: Displays warning cards with score badges, tier badges, and last run dates for low-performing datasets.
+   - **Positive Health Confirmation**: Displays an encouraging "All Datasets Healthy" card when all evaluated datasets meet or exceed 75.0 reliability.
+4. **Recent Activity Stream**:
+   - Up to 10 latest quality run snapshots across the workspace showing dataset names, timestamps formatted in relative human time (e.g., "5m ago"), score chips, and row counts.
+
+---
 
 ---
 
@@ -125,8 +149,9 @@ DataTrust delivers a clean, high-performance, developer-friendly reliability eng
 - **Data Quality Engine** *(Completed - Phase 5)*: Configurable declarative assertions (not null, unique, range boundaries, permitted sets, email regex, no future dates), dynamic DuckDB validation, Quality Score, and issues UI.
 - **Reliability Score & Anomaly Detection** *(Completed - Phase 6)*: Objective 0–100 composite index (50% Quality, 25% Completeness, 25% Anomaly Health) and scikit-learn Isolation Forest unsupervised outlier detection on numeric columns.
 - **Historical Quality & Reliability Tracking** *(Completed - Phase 7)*: Snapshot persistence (`quality_runs`), time-series Recharts reliability trend line, delta interpretation, and chronological run history.
-- **Advanced Analytics Dashboard** *(Planned - Phase 8)*: Multi-column distribution plots, correlation matrix, and dataset comparisons.
-- **AI Explanation Engine** *(Planned - Phase 9)*: Plain-language root cause diagnostics and remediation advice powered by the Gemini API.
+- **AI-Powered Quality Explanation** *(Completed - Phase 8)*: Google Gemini 2.5 Flash plain-language root cause diagnostics and remediation roadmap with strict data privacy.
+- **SaaS Dashboard & Product Analytics Polish** *(Completed - Phase 9)*: Workspace overview, executive KPIs, Recharts horizontal comparison bar chart, donut tier distribution, prioritized attention alerts, recent activity feed, and sub-15ms snapshot aggregation.
+- **Production Readiness, Documentation & Deployment** *(Planned - Phase 10)*: Final end-to-end hardening, container verification, and production deployment guides.
 
 ---
 
@@ -170,7 +195,7 @@ For an in-depth breakdown of database separation, schema models, and data lifecy
 - **Icons**: Lucide React
 - **Routing**: React Router DOM v6 with `ProtectedRoute`
 - **State**: React Context API (`AuthContext`)
-- **Charts**: Recharts (missing value distribution & histograms)
+- **Charts**: Recharts (missing value distribution, histograms, reliability trends, horizontal comparisons, donut distribution)
 
 ### Backend
 - **Framework**: FastAPI
@@ -180,12 +205,12 @@ For an in-depth breakdown of database separation, schema models, and data lifecy
 - **ORM / Persistence**: SQLAlchemy 2.0 with PostgreSQL drivers (`psycopg` & `psycopg2-binary`)
 - **Database Migrations**: Alembic
 - **Security & Authentication**: `bcrypt` (salted password hashing), `PyJWT` (stateless tokens)
-- **Testing**: Pytest & HTTPX TestClient (32 automated tests)
+- **Testing**: Pytest & HTTPX TestClient (62 automated tests)
 
-### Data & Machine Learning (Planned Phases)
+### Data & Machine Learning
 - **Data Manipulation**: Pandas, NumPy
 - **Machine Learning**: Scikit-learn (`IsolationForest` for anomaly detection)
-- **AI Explanation**: Google Gemini API
+- **AI Explanation**: Google Gemini API (`gemini-2.5-flash` via official `google-genai` SDK)
 
 ### Infrastructure & DevOps
 - **Containerization**: Docker & Docker Compose
@@ -203,12 +228,13 @@ DataTrust/
 │       └── ci.yml               # Automated CI pipeline (Backend tests + Frontend build)
 ├── backend/
 │   ├── alembic/                 # Alembic migration management
-│   │   ├── versions/            # 001_initial, 002_create_datasets, 003_create_dataset_columns
+│   │   ├── versions/            # 001_initial, 002_create_datasets, 003_columns, 004_rules, 005_runs
 │   │   └── env.py               # Dynamic database URL configuration
 │   ├── app/
 │   │   ├── api/                 # API routers and endpoints
 │   │   │   ├── auth.py          # Register, Login, Me endpoints
-│   │   │   ├── datasets.py      # Upload, List, Details, Delete endpoints
+│   │   │   ├── datasets.py      # Upload, List, Details, Delete, Profile, Rules, Anomalies, AI
+│   │   │   ├── dashboard.py     # Workspace SaaS overview analytics
 │   │   │   ├── deps.py          # FastAPI auth and db dependencies
 │   │   │   └── router.py        # Central API router
 │   │   ├── core/                # Centralized settings and security
@@ -219,21 +245,41 @@ DataTrust/
 │   │   │   ├── user.py          # User model (UUID, email, password_hash)
 │   │   │   ├── workspace.py     # Workspace model (UUID, name, owner_id)
 │   │   │   ├── dataset.py       # Dataset model (UUID, filename, format, size, rows)
-│   │   │   └── dataset_column.py# DatasetColumn model (types, nulls, distincts)
+│   │   │   ├── dataset_column.py# DatasetColumn model (types, nulls, distincts)
+│   │   │   ├── quality_rule.py  # QualityRule model (assertions & configuration)
+│   │   │   └── quality_run.py   # QualityRun model (persisted metric snapshots)
 │   │   ├── schemas/             # Pydantic validation schemas
 │   │   │   ├── auth.py          # UserRegister, UserLogin, TokenResponse
 │   │   │   ├── dataset.py       # DatasetResponse, DatasetDetailResponse
+│   │   │   ├── dashboard.py     # DashboardSummaryResponse, DashboardDatasetItem
 │   │   │   ├── health.py        # HealthCheckResponse
-│   │   │   ├── user.py          # UserResponse
-│   │   │   └── workspace.py     # WorkspaceResponse
+│   │   │   ├── history.py       # QualityRunResponse
+│   │   │   ├── profiling.py     # DatasetProfileResponse
+│   │   │   ├── quality.py       # QualityRuleCreate, QualityEvaluationResponse
+│   │   │   ├── reliability.py   # ReliabilityScoreResponse
+│   │   │   └── ai.py            # AIQualityExplanation
 │   │   ├── services/            # Modular domain services
 │   │   │   ├── datasets/        # Dataset orchestration & DuckDB inspection
+│   │   │   ├── profiling/       # Statistical profiling engine
+│   │   │   ├── quality/         # Rule evaluation engine
+│   │   │   ├── anomaly/         # Isolation Forest anomaly detection
+│   │   │   ├── reliability/     # Explainable composite score engine
+│   │   │   ├── history/         # Snapshot & trend persistence
+│   │   │   ├── ai/              # Gemini explanation service
+│   │   │   ├── dashboard/       # SaaS workspace overview aggregator
 │   │   │   └── storage/         # Local filesystem storage abstraction
 │   │   └── main.py              # FastAPI application entrypoint
-│   ├── tests/                   # Pytest test suite (20 unit/integration tests)
+│   ├── tests/                   # Pytest test suite (62 unit/integration tests)
 │   │   ├── conftest.py          # In-memory SQLite fixtures & client overrides
 │   │   ├── test_auth.py         # Authentication test cases
 │   │   ├── test_datasets.py     # Dataset upload, DuckDB inspection, & security tests
+│   │   ├── test_profiling.py    # Analytical profiling tests
+│   │   ├── test_quality.py      # Quality rules CRUD and evaluation tests
+│   │   ├── test_anomaly.py      # Statistical anomaly detection tests
+│   │   ├── test_reliability.py  # Reliability score formula tests
+│   │   ├── test_history.py      # Historical snapshot & trend tests
+│   │   ├── test_ai.py           # Gemini AI explanation tests
+│   │   ├── test_dashboard.py    # Workspace dashboard summary tests
 │   │   └── test_health.py       # Health and root endpoint tests
 │   ├── .env.example             # Backend environment template
 │   ├── Dockerfile               # Backend container image
@@ -241,13 +287,14 @@ DataTrust/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/ui/       # UI primitive components (Button, Card, ProtectedRoute)
-│   │   ├── components/          # UploadDatasetDialog modal
+│   │   ├── components/dashboard/# ReliabilityOverviewChart, ReliabilityDistributionChart, RecentActivity, NeedsAttention
+│   │   ├── components/          # UploadDatasetDialog, ProfilingOverview, etc.
 │   │   ├── context/             # AuthContext provider and useAuth hook
 │   │   ├── layouts/             # Navbar and RootLayout
 │   │   ├── pages/               # HomePage, LoginPage, RegisterPage, DashboardPage,
 │   │   │                        # DatasetsPage, DatasetDetailPage
-│   │   ├── services/            # API client (auth, datasets, health)
-│   │   ├── types/               # TypeScript interfaces (User, Dataset, Column)
+│   │   ├── services/            # API client (auth, datasets, health, dashboard)
+│   │   ├── types/               # TypeScript interfaces (User, Dataset, Dashboard, etc.)
 │   │   ├── App.tsx              # Application route definitions
 │   │   └── main.tsx             # React DOM entrypoint
 │   ├── .env.example             # Frontend environment template

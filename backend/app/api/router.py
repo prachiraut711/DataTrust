@@ -6,6 +6,7 @@ from app.api.anomaly import router as anomaly_router
 from app.api.reliability import router as reliability_router
 from app.api.history import router as history_router
 from app.api.ai import router as ai_router
+from app.api.dashboard import router as dashboard_router
 from app.schemas.health import HealthCheckResponse
 
 api_router = APIRouter()
@@ -18,6 +19,7 @@ api_router.include_router(anomaly_router)
 api_router.include_router(reliability_router)
 api_router.include_router(history_router)
 api_router.include_router(ai_router)
+api_router.include_router(dashboard_router)
 
 
 
