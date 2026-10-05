@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     # PostgreSQL Database URL
     DATABASE_URL: str = "postgresql://datatrust_user:datatrust_password@localhost:5432/datatrust_db"
 
+    # JWT Authentication Settings
+    JWT_SECRET_KEY: str = "datatrust-dev-secret-key-change-in-production-min-32-chars"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 1440  # 24 hours
+
     # Allowed CORS Origins
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",

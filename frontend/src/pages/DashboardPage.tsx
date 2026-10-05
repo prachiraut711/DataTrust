@@ -9,6 +9,10 @@ import {
   FolderGit2,
   Database,
   ArrowUpRight,
+  Layers,
+  Mail,
+  Calendar,
+  UserCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,8 +23,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { checkBackendHealth, type HealthResponse } from "@/services/api";
+import { useAuth } from "@/context/AuthContext";
 
 export function DashboardPage() {
+  const { user, activeWorkspace } = useAuth();
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +75,14 @@ export function DashboardPage() {
     },
   ];
 
+  const formattedDate = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : "Active";
+
   return (
     <div className="container py-8 space-y-8 max-w-7xl">
       {/* Top Header */}
@@ -78,12 +92,12 @@ export function DashboardPage() {
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               Platform Dashboard
             </h1>
-            <span className="rounded-md bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-              Phase 1 Foundation
+            <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              Phase 2 Active
             </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            DataTrust project shell, system connectivity status, and service modules.
+            Authenticated workspace session, health metrics, and pipeline readiness.
           </p>
         </div>
 
@@ -100,6 +114,67 @@ export function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* Authenticated Workspace & User Identity Card */}
+      <Card className="border bg-card shadow-sm">
+        <CardHeader className="pb-3 border-b bg-muted/20">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <UserCheck className="h-4 w-4" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-semibold text-foreground">
+                  {user?.full_name}
+                </CardTitle>
+                <CardDescription className="text-xs flex items-center gap-1.5 mt-0.5">
+                  <Mail className="h-3 w-3 text-muted-foreground" />
+                  {user?.email}
+                </CardDescription>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 rounded-md border bg-background px-3 py-1 text-xs">
+                <Layers className="h-3.5 w-3.5 text-primary" />
+                <span className="text-muted-foreground">Workspace:</span>
+                <span className="font-semibold text-foreground">
+                  {activeWorkspace?.name || "Default Workspace"}
+                </span>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div className="rounded-md border bg-background p-3 space-y-1">
+            <span className="text-muted-foreground uppercase font-mono text-[10px]">
+              Active Workspace ID
+            </span>
+            <div className="font-mono text-foreground truncate text-[11px]">
+              {activeWorkspace?.id || "N/A"}
+            </div>
+          </div>
+
+          <div className="rounded-md border bg-background p-3 space-y-1">
+            <span className="text-muted-foreground uppercase font-mono text-[10px]">
+              User ID
+            </span>
+            <div className="font-mono text-foreground truncate text-[11px]">
+              {user?.id || "N/A"}
+            </div>
+          </div>
+
+          <div className="rounded-md border bg-background p-3 space-y-1">
+            <span className="text-muted-foreground uppercase font-mono text-[10px] flex items-center gap-1">
+              <Calendar className="h-3 w-3 text-muted-foreground" />
+              Member Since
+            </span>
+            <div className="font-medium text-foreground text-[11px] mt-0.5">
+              {formattedDate}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Backend API Health Status Indicator */}
       <Card className="border bg-card">
@@ -174,7 +249,7 @@ export function DashboardPage() {
             Pipeline Subsystem Readiness
           </h2>
           <span className="text-xs text-muted-foreground">
-            Modular components adhering to Phase 1 architecture
+            Modular components scheduled for sequential implementation
           </span>
         </div>
 
@@ -211,28 +286,23 @@ export function DashboardPage() {
           <div className="flex items-center gap-2">
             <FolderGit2 className="h-4 w-4 text-primary" />
             <CardTitle className="text-sm font-semibold">
-              Phase 1 Foundation Operational
+              Phase 2: Authentication & Workspace Layer Active
             </CardTitle>
           </div>
           <CardDescription className="text-xs">
-            The shell layout, routing, UI library, and Tailwind design tokens are primed.
+            User credentials, workspace provisioning, and JWT sessions are secured in PostgreSQL.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Per development rules, actual dataset uploads, profiling tables, and charts will be implemented in subsequent phases. Database models and authentication will be added in Phase 2.
+            Phase 3 will add dataset file upload (CSV / Parquet), sanitized storage, and dataset metadata registration linked to your workspace.
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-primary hover:underline font-medium"
-            >
+            <span className="inline-flex items-center gap-1 text-xs text-primary font-medium">
               <Database className="h-3.5 w-3.5" />
-              PostgreSQL Schema Ready
+              Users & Workspaces Migrated with Alembic
               <ArrowUpRight className="h-3 w-3" />
-            </a>
+            </span>
           </div>
         </CardContent>
       </Card>

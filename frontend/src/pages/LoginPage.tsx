@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom";
-import { ShieldCheck, ArrowRight, Lock } from "lucide-react";
+import React, { useState } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { ShieldCheck, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,8 +10,46 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useAuth } from "@/context/AuthContext";
 
 export function LoginPage() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || "/dashboard";
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    // Validation
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      setError("Please enter your email address.");
+      return;
+    }
+    if (!password) {
+      setError("Please enter your password.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await login(cleanEmail, password);
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to sign in. Please verify your credentials.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="container flex min-h-[calc(100vh-10rem)] items-center justify-center py-12">
       <Card className="w-full max-w-md border shadow-sm">
@@ -20,55 +59,78 @@ export function LoginPage() {
           </div>
           <CardTitle className="text-2xl font-bold">Sign in to DataTrust</CardTitle>
           <CardDescription className="text-xs">
-            Enter your credentials to access dataset validation pipelines
+            Enter your credentials to access your dataset workspaces
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-md border border-dashed bg-muted/40 p-4 text-center">
-            <div className="flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground mb-1">
-              <Lock className="h-3.5 w-3.5 text-primary" />
-              <span>Authentication Module (Phase 2)</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              User authentication, JWT tokens, and role-based metadata access will be activated in the next development phase.
-            </p>
-          </div>
 
-          <div className="space-y-3 opacity-60 pointer-events-none">
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Email</label>
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            {error && (
+              <div className="flex items-start gap-2.5 rounded-md border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{error}</span>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="text-xs font-medium text-foreground">
+                Email Address
+              </label>
               <input
+                id="email"
                 type="email"
-                disabled
-                placeholder="engineer@datatrust.io"
-                className="w-full rounded-md border bg-muted/20 px-3 py-2 text-sm focus:outline-none"
+                required
+                autoComplete="email"
+                placeholder="analyst@organization.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50"
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Password</label>
+
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label htmlFor="password" className="text-xs font-medium text-foreground">
+                  Password
+                </label>
+              </div>
               <input
+                id="password"
                 type="password"
-                disabled
+                required
+                autoComplete="current-password"
                 placeholder="••••••••"
-                className="w-full rounded-md border bg-muted/20 px-3 py-2 text-sm focus:outline-none"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50"
               />
             </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3">
-          <Link to="/dashboard" className="w-full">
-            <Button className="w-full gap-2">
-              Bypass to Dashboard (Foundation Mode)
-              <ArrowRight className="h-4 w-4" />
+          </CardContent>
+
+          <CardFooter className="flex flex-col gap-3 pt-2">
+            <Button type="submit" disabled={loading} className="w-full gap-2">
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Signing In...
+                </>
+              ) : (
+                <>
+                  Sign In
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </Button>
-          </Link>
-          <p className="text-center text-xs text-muted-foreground">
-            Don&apos;t have an account?{" "}
-            <Link to="/register" className="text-primary hover:underline font-medium">
-              Create account
-            </Link>
-          </p>
-        </CardFooter>
+            <p className="text-center text-xs text-muted-foreground">
+              Don&apos;t have an account?{" "}
+              <Link to="/register" className="text-primary hover:underline font-medium">
+                Create account
+              </Link>
+            </p>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   );

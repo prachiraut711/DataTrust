@@ -8,9 +8,14 @@ DataTrust is an incremental SaaS platform designed to determine whether CSV and 
 
 ## Project Status
 
-**Phase 1 — Foundation: Completed**
+**Phase 2 — Database Models & Authentication: Completed**
 
-The architectural foundation, modular directory structures, frontend React+Vite shell, backend FastAPI health router, PostgreSQL SQLAlchemy session management, Docker Compose local setup, CI workflow, and technical architecture documentation are fully established and verified.
+The architectural foundation, PostgreSQL metadata models (Users and Workspaces), Alembic migrations, bcrypt password security, JWT session authentication, protected frontend dashboard routing, and comprehensive test suite are fully operational and verified.
+
+- **PostgreSQL Metadata Foundation**: Implemented via SQLAlchemy 2.0 with UUID keys and Alembic versioning.
+- **User Authentication**: Implemented via `POST /api/auth/register`, `POST /api/auth/login`, and `GET /api/auth/me`.
+- **Workspace Creation**: Implemented with automatic default workspace provisioning for every registered user.
+- **Frontend Session Management**: Implemented with React `AuthContext`, session hydration, and `ProtectedRoute` guard.
 
 See [PROJECT_STATUS.md](file:///D:/prachi/Antigravity-Projects/DataTrust/PROJECT_STATUS.md) for current progress and upcoming phase milestones.
 
@@ -30,17 +35,16 @@ Existing solutions tend to fall into two extremes:
 
 DataTrust delivers a clean, high-performance, developer-friendly reliability engine that evaluates tabular datasets rapidly using an embedded in-process OLAP engine (**DuckDB**) alongside relational metadata persistence (**PostgreSQL**).
 
-### Planned Features
+### Features & Implementation Roadmap
 
-- **Multi-Format Ingestion**: Drag-and-drop upload for CSV and Parquet datasets with structural validation.
-- **Analytical Profiling**: Rapid column profiling, type discovery, null distributions, and quantiles powered by DuckDB.
-- **Data Quality Engine**: Configurable declarative assertions (completeness, uniqueness, range boundaries, regex patterns).
-- **DataTrust Reliability Score**: An objective 0–100 weighted index communicating operational readiness for machine learning.
-- **Unsupervised Anomaly Detection**: Isolation Forest outlier scoring on multivariate distributions.
-- **Run-over-Run Quality Analytics**: Historical tracking of dataset runs to identify quality regressions and data drift.
-- **AI Explanation Engine**: Plain-language root cause diagnostics and remediation advice powered by the Gemini API.
-
-> *Note: These functional modules are scheduled in subsequent phases. Phase 1 provides the foundational architecture, API router, database session, and UI shell.*
+- **User Authentication & Workspaces** *(Completed - Phase 2)*: Email/password authentication, bcrypt hashing, stateless JWTs, and automatic workspace creation.
+- **Multi-Format Ingestion** *(Planned - Phase 3)*: Drag-and-drop upload for CSV and Parquet datasets with structural validation.
+- **Analytical Profiling** *(Planned - Phase 4)*: Rapid column profiling, type discovery, null distributions, and quantiles powered by DuckDB.
+- **Data Quality Engine** *(Planned - Phase 5)*: Configurable declarative assertions (completeness, uniqueness, range boundaries, regex patterns).
+- **DataTrust Reliability Score** *(Planned - Phase 6)*: An objective 0–100 weighted index communicating operational readiness for machine learning.
+- **Unsupervised Anomaly Detection** *(Planned - Phase 7)*: Isolation Forest outlier scoring on multivariate distributions.
+- **Run-over-Run Quality Analytics** *(Planned - Phase 8)*: Historical tracking of dataset runs to identify quality regressions and data drift.
+- **AI Explanation Engine** *(Planned - Phase 9)*: Plain-language root cause diagnostics and remediation advice powered by the Gemini API.
 
 ---
 
@@ -53,7 +57,7 @@ DataTrust is structured as a modular monolith with clear separation between appl
 │               Frontend (React + Vite + TS)              │
 │       Tailwind CSS + shadcn/ui + React Router          │
 └───────────────────────────┬────────────────────────────┘
-                            │ HTTP / REST
+                            │ HTTP / REST (Bearer JWT)
                             ▼
 ┌────────────────────────────────────────────────────────┐
 │                Backend (FastAPI + Python)              │
@@ -65,11 +69,11 @@ DataTrust is structured as a modular monolith with clear separation between appl
 ┌───────────────────────────┐ ┌───────────────────────────┐
 │     Metadata Database     │ │   Analytical Engine       │
 │        PostgreSQL         │ │     Embedded DuckDB       │
-│  (Users, Runs, Metadata)  │ │   (Direct Parquet/CSV)    │
+│  (Users, Workspaces, DDL) │ │   (Direct Parquet/CSV)    │
 └───────────────────────────┘ └───────────────────────────┘
 ```
 
-For an in-depth breakdown of database separation and system components, read [docs/ARCHITECTURE.md](file:///D:/prachi/Antigravity-Projects/DataTrust/docs/ARCHITECTURE.md) and [docs/DATA_FLOW.md](file:///D:/prachi/Antigravity-Projects/DataTrust/docs/DATA_FLOW.md).
+For an in-depth breakdown of database separation, schema models, and data lifecycles, read [docs/ARCHITECTURE.md](file:///D:/prachi/Antigravity-Projects/DataTrust/docs/ARCHITECTURE.md) and [docs/DATA_FLOW.md](file:///D:/prachi/Antigravity-Projects/DataTrust/docs/DATA_FLOW.md).
 
 ---
 
@@ -82,14 +86,17 @@ For an in-depth breakdown of database separation and system components, read [do
 - **Styling**: Tailwind CSS with custom design tokens
 - **Components**: shadcn/ui architectural pattern
 - **Icons**: Lucide React
-- **Routing**: React Router DOM v6
+- **Routing**: React Router DOM v6 with `ProtectedRoute`
+- **State**: React Context API (`AuthContext`)
 - **Charts (Planned)**: Recharts
 
 ### Backend
 - **Framework**: FastAPI
 - **Language**: Python 3.12
 - **Validation**: Pydantic v2 & Pydantic Settings
-- **ORM / Persistence**: SQLAlchemy 2.0 with PostgreSQL driver (`psycopg2-binary`)
+- **ORM / Persistence**: SQLAlchemy 2.0 with PostgreSQL drivers (`psycopg` & `psycopg2-binary`)
+- **Database Migrations**: Alembic
+- **Security & Authentication**: `bcrypt` (salted password hashing), `PyJWT` (stateless tokens)
 - **Testing**: Pytest & HTTPX TestClient
 
 ### Data & Machine Learning (Planned Phases)
@@ -111,48 +118,58 @@ For an in-depth breakdown of database separation and system components, read [do
 DataTrust/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml               # Automated CI pipeline
+│       └── ci.yml               # Automated CI pipeline (Backend tests + Frontend build)
 ├── backend/
+│   ├── alembic/                 # Alembic migration management
+│   │   ├── versions/            # Migration revisions (001_create_users_and_workspaces)
+│   │   └── env.py               # Dynamic database URL configuration
 │   ├── app/
 │   │   ├── api/                 # API routers and endpoints
-│   │   ├── core/                # Centralized Pydantic settings
+│   │   │   ├── auth.py          # Register, Login, Me endpoints
+│   │   │   ├── deps.py          # FastAPI auth and db dependencies
+│   │   │   └── router.py        # Central API router
+│   │   ├── core/                # Centralized settings and security
+│   │   │   ├── config.py        # Pydantic BaseSettings
+│   │   │   └── security.py      # Bcrypt hashing & JWT utilities
 │   │   ├── database/            # SQLAlchemy session and engine
-│   │   ├── models/              # Database ORM models (Phase 2+)
+│   │   ├── models/              # Database ORM models
+│   │   │   ├── user.py          # User model (UUID, email, password_hash)
+│   │   │   └── workspace.py     # Workspace model (UUID, name, owner_id)
 │   │   ├── schemas/             # Pydantic validation schemas
-│   │   ├── services/            # Modular domain services
-│   │   │   ├── ai/              # AI explanation service
-│   │   │   ├── analytics/       # Analytics calculation service
-│   │   │   ├── anomaly/         # Isolation Forest anomaly service
-│   │   │   ├── profiling/       # DuckDB profiling service
-│   │   │   └── quality/         # Quality rule validation service
+│   │   │   ├── auth.py          # UserRegister, UserLogin, TokenResponse
+│   │   │   ├── health.py        # HealthCheckResponse
+│   │   │   ├── user.py          # UserResponse
+│   │   │   └── workspace.py     # WorkspaceResponse
+│   │   ├── services/            # Modular domain services (profiling, quality, etc.)
 │   │   └── main.py              # FastAPI application entrypoint
-│   ├── tests/                   # Pytest test suite
+│   ├── tests/                   # Pytest test suite (10 unit/integration tests)
+│   │   ├── conftest.py          # In-memory SQLite fixtures & client overrides
+│   │   ├── test_auth.py         # Authentication test cases
+│   │   └── test_health.py       # Health and root endpoint tests
 │   ├── .env.example             # Backend environment template
 │   ├── Dockerfile               # Backend container image
 │   └── requirements.txt         # Pinned Python dependencies
 ├── frontend/
 │   ├── src/
-│   │   ├── components/ui/       # UI primitive components
-│   │   ├── hooks/               # Custom React hooks
-│   │   ├── layouts/             # Page layouts and navigation
-│   │   ├── lib/                 # Utility functions (cn, etc.)
-│   │   ├── pages/               # Route page components
-│   │   ├── services/            # Backend API clients
-│   │   ├── types/               # TypeScript interfaces
-│   │   ├── App.tsx              # Application route definition
+│   │   ├── components/ui/       # UI primitive components (Button, Card, ProtectedRoute)
+│   │   ├── context/             # AuthContext provider and useAuth hook
+│   │   ├── layouts/             # Navbar and RootLayout
+│   │   ├── pages/               # HomePage, LoginPage, RegisterPage, DashboardPage
+│   │   ├── services/            # API client (register, login, me, health)
+│   │   ├── types/               # TypeScript interfaces (User, Workspace, AuthResponse)
+│   │   ├── App.tsx              # Application route definitions
 │   │   └── main.tsx             # React DOM entrypoint
 │   ├── .env.example             # Frontend environment template
 │   ├── Dockerfile               # Multi-stage production build
-│   ├── nginx.conf               # Web server configuration
 │   ├── package.json             # NPM package manifest
 │   ├── tailwind.config.js       # Tailwind CSS configuration
 │   └── vite.config.ts           # Vite configuration
 ├── data/
 │   └── sample/                  # Safe sample datasets for testing
 ├── docs/
-│   ├── ARCHITECTURE.md          # Technical architecture overview
-│   └── DATA_FLOW.md             # End-to-end dataset lifecycle
-├── .gitignore                   # Ignore rules for Python, Node, datasets
+│   ├── ARCHITECTURE.md          # Technical architecture overview & schema models
+│   └── DATA_FLOW.md             # End-to-end dataset lifecycle documentation
+├── .gitignore                   # Ignore rules for Python, Node, datasets, and secrets
 ├── docker-compose.yml           # Local multi-container development environment
 ├── PROJECT_STATUS.md            # Roadmap and phase milestone tracker
 └── README.md                    # Project documentation
@@ -186,7 +203,10 @@ pip install -r requirements.txt
 # Configure environment variables
 cp .env.example .env
 
-# Run unit and health tests
+# Run database migrations
+alembic upgrade head
+
+# Run tests
 pytest -v
 
 # Start the FastAPI server
@@ -196,6 +216,7 @@ uvicorn app.main:app --reload --port 8000
 The API will be accessible at:
 - Root: `http://localhost:8000/`
 - Health: `http://localhost:8000/api/health`
+- Auth Endpoints: `http://localhost:8000/api/auth/register`, `http://localhost:8000/api/auth/login`, `http://localhost:8000/api/auth/me`
 - Swagger Docs: `http://localhost:8000/docs`
 
 ### 2. Frontend Setup
@@ -216,6 +237,7 @@ npm run dev
 
 The web application will be accessible at:
 - Web UI: `http://localhost:5173`
+- Unauthenticated access to `/dashboard` redirects to `/login`.
 
 ---
 
@@ -231,7 +253,6 @@ docker compose up --build
 Services will be exposed at:
 - Frontend: `http://localhost:3000`
 - Backend API: `http://localhost:8000`
-- API Health Check: `http://localhost:8000/api/health`
 - PostgreSQL: `localhost:5432`
 
 ---

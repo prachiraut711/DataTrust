@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom";
-import { ShieldCheck, ArrowRight, UserPlus } from "lucide-react";
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ShieldCheck, ArrowRight, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,8 +10,55 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useAuth } from "@/context/AuthContext";
 
 export function RegisterPage() {
+  const navigate = useNavigate();
+  const { register } = useAuth();
+
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+
+    // Validation
+    const cleanName = fullName.trim();
+    const cleanEmail = email.trim();
+
+    if (!cleanName) {
+      setError("Please provide your full name.");
+      return;
+    }
+    if (!cleanEmail) {
+      setError("Please provide a valid work or personal email.");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match. Please re-enter.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await register(cleanName, cleanEmail, password);
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to register. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="container flex min-h-[calc(100vh-10rem)] items-center justify-center py-12">
       <Card className="w-full max-w-md border shadow-sm">
@@ -20,64 +68,110 @@ export function RegisterPage() {
           </div>
           <CardTitle className="text-2xl font-bold">Create DataTrust Account</CardTitle>
           <CardDescription className="text-xs">
-            Register to profile datasets and track data reliability metrics
+            Start assessing dataset reliability, quality runs, and anomalies
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-md border border-dashed bg-muted/40 p-4 text-center">
-            <div className="flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground mb-1">
-              <UserPlus className="h-3.5 w-3.5 text-primary" />
-              <span>User Registration (Phase 2)</span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Registration, password hashing with bcrypt, and profile management will be implemented alongside PostgreSQL models.
-            </p>
-          </div>
 
-          <div className="space-y-3 opacity-60 pointer-events-none">
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-3.5">
+            {error && (
+              <div className="flex items-start gap-2.5 rounded-md border border-destructive/20 bg-destructive/10 p-3 text-xs text-destructive">
+                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                <span className="leading-relaxed">{error}</span>
+              </div>
+            )}
+
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Full Name</label>
+              <label htmlFor="fullName" className="text-xs font-medium text-foreground">
+                Full Name
+              </label>
               <input
+                id="fullName"
                 type="text"
-                disabled
+                required
+                autoComplete="name"
                 placeholder="Prachi Data Lead"
-                className="w-full rounded-md border bg-muted/20 px-3 py-2 text-sm focus:outline-none"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                disabled={loading}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50"
               />
             </div>
+
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Work Email</label>
+              <label htmlFor="email" className="text-xs font-medium text-foreground">
+                Work Email
+              </label>
               <input
+                id="email"
                 type="email"
-                disabled
+                required
+                autoComplete="email"
                 placeholder="lead@organization.com"
-                className="w-full rounded-md border bg-muted/20 px-3 py-2 text-sm focus:outline-none"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50"
               />
             </div>
+
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Password</label>
+              <label htmlFor="password" className="text-xs font-medium text-foreground">
+                Password (min 8 characters)
+              </label>
               <input
+                id="password"
                 type="password"
-                disabled
+                required
+                autoComplete="new-password"
                 placeholder="••••••••"
-                className="w-full rounded-md border bg-muted/20 px-3 py-2 text-sm focus:outline-none"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50"
               />
             </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3">
-          <Link to="/dashboard" className="w-full">
-            <Button className="w-full gap-2">
-              Continue to Dashboard Shell
-              <ArrowRight className="h-4 w-4" />
+
+            <div className="space-y-1">
+              <label htmlFor="confirmPassword" className="text-xs font-medium text-foreground">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                required
+                autoComplete="new-password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={loading}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50"
+              />
+            </div>
+          </CardContent>
+
+          <CardFooter className="flex flex-col gap-3 pt-2">
+            <Button type="submit" disabled={loading} className="w-full gap-2">
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating Account...
+                </>
+              ) : (
+                <>
+                  Create Account
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </Button>
-          </Link>
-          <p className="text-center text-xs text-muted-foreground">
-            Already have an account?{" "}
-            <Link to="/login" className="text-primary hover:underline font-medium">
-              Sign In
-            </Link>
-          </p>
-        </CardFooter>
+            <p className="text-center text-xs text-muted-foreground">
+              Already have an account?{" "}
+              <Link to="/login" className="text-primary hover:underline font-medium">
+                Sign In
+              </Link>
+            </p>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   );

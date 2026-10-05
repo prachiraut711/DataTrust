@@ -1,8 +1,6 @@
-"""DataTrust SQLAlchemy ORM models package.
-
-Database models for users, datasets, profiling runs, quality checks,
-and anomaly runs will be registered here in upcoming phases.
-"""
+"""DataTrust SQLAlchemy ORM models package."""
 from app.database.session import Base
+from app.models.user import User
+from app.models.workspace import Workspace
 
-__all__ = ["Base"]
+__all__ = ["Base", "User", "Workspace"]

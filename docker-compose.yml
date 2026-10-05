@@ -27,6 +27,7 @@ services:
       DATABASE_URL: postgresql://datatrust_user:datatrust_password@postgres:5432/datatrust_db
       ENVIRONMENT: development
       PROJECT_NAME: "DataTrust API"
+      JWT_SECRET_KEY: "datatrust-dev-secret-key-change-in-production-min-32-chars"
     ports:
       - "8000:8000"
     depends_on:

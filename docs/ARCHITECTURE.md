@@ -13,7 +13,7 @@ The system follows a clean modular monolithic architecture designed for clear se
 │               Frontend (React + Vite + TS)              │
 │       Tailwind CSS + shadcn/ui + React Router          │
 └───────────────────────────┬────────────────────────────┘
-                            │ HTTP / JSON API
+                            │ HTTP / JSON API (Bearer JWT)
                             ▼
 ┌────────────────────────────────────────────────────────┐
 │                Backend (FastAPI + Python)              │
@@ -25,7 +25,7 @@ The system follows a clean modular monolithic architecture designed for clear se
 ┌───────────────────────────┐ ┌───────────────────────────┐
 │     Metadata Database     │ │   Analytical Data Engine  │
 │        PostgreSQL         │ │     Embedded DuckDB       │
-│  (Relational Persistence) │ │    (In-Process OLAP)      │
+│  (Users, Workspaces, DDL) │ │    (In-Process OLAP)      │
 └───────────────────────────┘ └───────────────────────────┘
 ```
 
@@ -36,22 +36,61 @@ The system follows a clean modular monolithic architecture designed for clear se
 ### 2.1 Frontend Presentation Layer
 - **Framework**: React 18 with TypeScript and Vite.
 - **Styling & UI**: Tailwind CSS with custom HSL design tokens, standard shadcn/ui design patterns, and Lucide icons.
-- **Routing**: React Router DOM (Single Page Application architecture).
+- **Routing & Protection**: React Router DOM with an `AuthProvider` context and `ProtectedRoute` guard ensuring unauthenticated users are redirected to `/login`.
 - **Visualization (Planned)**: Recharts for quality metric timelines, distribution histograms, and anomaly scatter plots.
 
 ### 2.2 API & Application Service Layer
 - **Framework**: FastAPI (Python 3.12).
 - **Validation**: Pydantic v2 schemas and Pydantic Settings for centralized, type-safe configuration.
+- **Security & Session**: Direct `bcrypt` password hashing, stateless `PyJWT` tokens (`HS256`, 24h expiration), and `OAuth2PasswordBearer` dependency extraction.
 - **Modular Services**:
-  - `profiling/`: Statistical schema inference, null counts, cardinalities, and quantiles.
-  - `quality/`: Rule engine evaluating completeness, uniqueness, ranges, and schema drift.
-  - `analytics/`: Aggregate metric generation and data health indexing.
-  - `anomaly/`: Scikit-learn `IsolationForest` unsupervised outlier detection.
-  - `ai/`: Gemini API integration explaining detected anomalies in plain language.
+  - `profiling/`: Statistical schema inference, null counts, cardinalities, and quantiles (Phase 4).
+  - `quality/`: Rule engine evaluating completeness, uniqueness, ranges, and schema drift (Phase 5).
+  - `analytics/`: Aggregate metric generation and data health indexing (Phase 8).
+  - `anomaly/`: Scikit-learn `IsolationForest` unsupervised outlier detection (Phase 7).
+  - `ai/`: Gemini API integration explaining detected anomalies in plain language (Phase 9).
 
 ---
 
-## 3. Dual Database Strategy: PostgreSQL vs. DuckDB
+## 3. Metadata Models & Multi-Tenant Workspaces (Phase 2)
+
+### 3.1 Relational Schema Architecture
+
+```
+┌──────────────────────────────────────┐
+│                users                 │
+├──────────────────────────────────────┤
+│ id: UUID (PK)                        │
+│ email: VARCHAR(255) (UNIQUE, INDEX)  │
+│ password_hash: VARCHAR(255)          │
+│ full_name: VARCHAR(255)              │
+│ created_at: TIMESTAMPTZ              │
+│ updated_at: TIMESTAMPTZ              │
+└──────────────────┬───────────────────┘
+                   │ 1
+                   │ owns
+                   │ N
+                   ▼
+┌──────────────────────────────────────┐
+│              workspaces              │
+├──────────────────────────────────────┤
+│ id: UUID (PK)                        │
+│ name: VARCHAR(255)                   │
+│ owner_id: UUID (FK -> users.id, IDX) │
+│ created_at: TIMESTAMPTZ              │
+│ updated_at: TIMESTAMPTZ              │
+└──────────────────────────────────────┘
+```
+
+### 3.2 Design Decisions:
+1. **UUID Primary Keys**: Universal Unique Identifiers prevent enumeration attacks, simplify data seeding across test environments, and allow safe client-side reference generation.
+2. **Cascading Deletes**: `ondelete="CASCADE"` on `workspaces.owner_id` guarantees relational consistency without orphaned resources.
+3. **Automatic Workspace Provisioning**: Upon successful registration, the backend automatically provisions a default workspace (e.g. `"<Full Name>'s Workspace"`) within the same database transaction.
+4. **Reproducible Migrations (Alembic)**: Database schema evolution is version-controlled via Alembic (`001_initial`), avoiding manual table definitions or unmanaged `Base.metadata.create_all()` in production.
+
+---
+
+## 4. Dual Database Strategy: PostgreSQL vs. DuckDB
 
 A foundational architectural decision in DataTrust is the **clear separation of operational metadata from analytical data processing**:
 
@@ -62,9 +101,10 @@ A foundational architectural decision in DataTrust is the **clear separation of 
             ▼                                     ▼
    Operational / Relational              Analytical / OLAP
    • Users & Authentication              • Column-oriented aggregations
-   • Dataset metadata manifests          • Parquet/CSV file scanning
-   • Configured quality rules            • Summary statistics & quantiles
-   • Historical run outcomes             • In-memory dataset profiling
+   • Workspaces & Permissions            • Parquet/CSV file scanning
+   • Dataset metadata manifests          • Summary statistics & quantiles
+   • Configured quality rules            • In-memory dataset profiling
+   • Historical run outcomes             • Anomaly scoring vectors
             │                                     │
             ▼                                     ▼
        PostgreSQL                              DuckDB
@@ -72,7 +112,7 @@ A foundational architectural decision in DataTrust is the **clear separation of 
 ```
 
 ### Why PostgreSQL for Application Metadata?
-1. **Relational Integrity**: Foreign key constraints between users, datasets, validation runs, and configured rules.
+1. **Relational Integrity**: Foreign key constraints between users, workspaces, datasets, and validation runs.
 2. **ACID Transactions**: Reliable state management for dataset tracking, user sessions, and test run logs.
 3. **Ecosystem & Cloud Ready**: Out-of-the-box support for managed database providers such as Neon, Supabase, or AWS RDS.
 
@@ -84,7 +124,7 @@ A foundational architectural decision in DataTrust is the **clear separation of 
 
 ---
 
-## 4. Infrastructure & Deployment Model
+## 5. Infrastructure & Deployment Model
 
 - **Local Development**: Managed via Docker Compose containing:
   - `datatrust-frontend`: Node builder + Nginx static server (port `3000` / `80`).

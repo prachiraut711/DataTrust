@@ -8,7 +8,7 @@ on:
 
 jobs:
   backend-checks:
-    name: Backend Lint & Health Tests
+    name: Backend Tests & Auth Suite
     runs-on: ubuntu-latest
 
     steps:
