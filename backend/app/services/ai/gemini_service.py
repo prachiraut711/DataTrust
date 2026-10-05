@@ -61,7 +61,8 @@ class GeminiService:
             {
                 "rule_name": r.rule_name,
                 "rule_type": r.rule_type,
-                "column": r.column_name,
+                "affected_column": r.column_name,
+                "violating_rows": r.failed_rows,
                 "failure_percentage": r.failure_percentage,
                 "message": r.message,
             }
@@ -69,39 +70,42 @@ class GeminiService:
             if r.status == "FAIL"
         ]
 
-        # 5. Anomalous columns detail
+        # 5. Anomalous columns detail (including up to 5 representative anomalous sample values)
         anomalous_cols = [
             {
                 "column": c.column_name,
                 "anomaly_count": c.anomaly_count,
                 "anomaly_percentage": c.anomaly_percentage,
+                "sample_anomalies": c.sample_anomalies[:5] if c.sample_anomalies else [],
             }
             for c in anomaly_res.column_results
             if c.status == "success" and c.anomaly_count > 0
         ]
 
         # 6. Historical trend synopsis
-        trend_summary = "Initial analysis run (no historical baseline)."
+        trend_summary = {
+            "has_history": False,
+            "description": "Initial analysis run (no historical baseline).",
+        }
         if len(recent_runs) >= 2:
             curr_run = recent_runs[0]
             prev_run = recent_runs[1]
             diff = round(curr_run.reliability_score - prev_run.reliability_score, 2)
-            if diff > 0:
-                trend_summary = (
-                    f"Reliability score improved by +{diff} points compared to previous snapshot "
-                    f"({prev_run.reliability_score} -> {curr_run.reliability_score})."
-                )
-            elif diff < 0:
-                trend_summary = (
-                    f"Reliability score degraded by {diff} points compared to previous snapshot "
-                    f"({prev_run.reliability_score} -> {curr_run.reliability_score})."
-                )
-            else:
-                trend_summary = (
-                    f"Reliability score remained steady at {curr_run.reliability_score} across consecutive snapshots."
-                )
+            direction = "improving" if diff > 0 else ("declining" if diff < 0 else "stable")
+            trend_summary = {
+                "has_history": True,
+                "previous_reliability_score": prev_run.reliability_score,
+                "current_reliability_score": curr_run.reliability_score,
+                "score_change": diff,
+                "direction": direction,
+                "description": f"Reliability score changed by {diff:+} points ({prev_run.reliability_score} -> {curr_run.reliability_score}) and is {direction}.",
+            }
         elif len(recent_runs) == 1:
-            trend_summary = f"Single recorded snapshot available (Reliability score: {recent_runs[0].reliability_score})."
+            trend_summary = {
+                "has_history": True,
+                "current_reliability_score": recent_runs[0].reliability_score,
+                "description": f"Single recorded snapshot available (Reliability score: {recent_runs[0].reliability_score}).",
+            }
 
         return {
             "dataset_name": dataset.name,
@@ -110,8 +114,11 @@ class GeminiService:
             "total_columns": profile.total_columns,
             "missing_value_percentage": profile.missing_value_percentage,
             "total_missing_values": profile.total_missing_values,
-            "duplicate_rows": profile.duplicate_rows,
-            "duplicate_percentage": profile.duplicate_row_percentage,
+            "duplicate_row_count": profile.duplicate_rows,
+            "duplicate_row_percentage": profile.duplicate_row_percentage,
+            "numeric_columns_count": profile.numeric_columns,
+            "categorical_columns_count": profile.categorical_columns,
+            "date_columns_count": profile.date_columns,
             "columns_summary": cols_summary,
             "reliability": {
                 "score": rel_result.reliability_score,
@@ -122,6 +129,7 @@ class GeminiService:
                     "weight": rel_result.components.quality.weight,
                     "passed_rules": rel_result.components.quality.passed_rules,
                     "failed_rules": rel_result.components.quality.failed_rules,
+                    "skipped_rules": quality_eval.summary.skipped_rules,
                     "total_rules": rel_result.components.quality.total_rules,
                     "failing_rules_details": failing_rules,
                 },
@@ -139,7 +147,7 @@ class GeminiService:
                     "anomalous_columns": anomalous_cols,
                 },
             },
-            "history_trend": trend_summary,
+            "historical_trend": trend_summary,
         }
 
     def build_prompt(self, context: Dict[str, Any]) -> str:
@@ -192,7 +200,7 @@ class GeminiService:
             logger.error("Failed to parse Gemini JSON output: %s. Response: %s", err, raw_text)
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="AI explanation is temporarily unavailable. Please try again.",
+                detail="We couldn't generate a valid explanation. Please try again.",
             )
 
         summary = str(data.get("summary", "")).strip() or "Analysis completed successfully."

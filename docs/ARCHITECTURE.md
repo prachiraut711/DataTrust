@@ -118,24 +118,18 @@ The system follows a clean modular monolithic architecture designed for clear se
   ```
 - **AI-Powered Quality Explanation Architecture Flow (Phase 8)**:
   ```
-  Dataset
-     ├── Profiling (Missing values, row/col counts, column statistics)
-     ├── Quality Rules (Passed & failed assertions, failure rates)
-     ├── Anomaly Detection (Isolation Forest outliers, anomalous columns)
-     ├── Reliability Score (Composite score & 3 component weights)
-     └── History Runs (Trend delta & previous snapshot)
-               │
-               ▼
-        Structured Summary Payload (JSON)
-        [STRICT PRIVACY: Zero raw dataset rows transmitted]
-               │
-               ▼
-        Google Gemini API (gemini-2.5-flash)
-               │
-               ▼
-        AIQualityExplanation
-        (Executive summary, root cause explanations, key issues with severity, actionable remediation)
+  Existing DataTrust Analysis
+            │
+            ▼
+     Structured Metrics
+            │
+            ▼
+        GeminiService
+            │
+            ▼
+     AI Explanation
   ```
+  Gemini acts strictly as an **explanation layer**, not the primary data-analysis engine. All underlying metrics, quality scores, and anomaly distributions are computed authoritatively by DataTrust's internal Python, DuckDB, and Scikit-learn services. Raw dataset rows, cell contents, or user credentials are never transmitted to Gemini.
 - **Explainable Reliability Score Formula**:
   $$\text{Reliability Score} = 0.50 \times \text{Quality} + 0.25 \times \text{Completeness} + 0.25 \times \text{Anomaly Health}$$
   where:

@@ -518,15 +518,6 @@ export function DatasetDetailPage() {
             onRunCreated={fetchQualityRuns}
           />
 
-          {/* AI-Powered Quality & Reliability Explanation */}
-          <div className="border-t pt-8">
-            <AIQualityExplanation
-              token={token}
-              datasetId={id!}
-              datasetName={dataset.name}
-            />
-          </div>
-
           {/* Historical Reliability Trend Line Chart */}
           <div className="border-t pt-8">
             <ReliabilityTrendChart runs={runs} />
@@ -538,6 +529,15 @@ export function DatasetDetailPage() {
               <QualityRunHistory runs={runs} />
             </div>
           )}
+
+          {/* AI-Powered Quality & Reliability Explanation */}
+          <div className="border-t pt-8">
+            <AIQualityExplanation
+              token={token}
+              datasetId={id!}
+              datasetName={dataset.name}
+            />
+          </div>
 
           {/* Unsupervised Anomaly Detection Section */}
           <div className="border-t pt-8">

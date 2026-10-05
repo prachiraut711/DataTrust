@@ -24,6 +24,8 @@ See [PROJECT_STATUS.md](file:///D:/prachi/Antigravity-Projects\DataTrust\PROJECT
 
 ## AI-Powered Quality & Reliability Explanation
 
+> DataTrust uses Gemini to convert existing profiling, quality, anomaly, reliability, and historical metrics into a concise human-readable explanation. Raw uploaded dataset contents are not sent to the AI model.
+
 DataTrust pairs strict deterministic metrics with Google Gemini generative intelligence:
 
 1. **Executive Plain-Language Summary**:

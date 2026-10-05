@@ -16,7 +16,7 @@ Last Updated: Phase 8 AI-Powered Data Quality Explanation Completion
 | **Phase 6** | **Reliability Score & Anomaly Detection** | **Completed** | Isolation Forest statistical anomaly detection, explainable 0–100 Reliability Score (50% Quality, 25% Completeness, 25% Anomaly Health), per-column outlier samples, and interactive UI. |
 | **Phase 7** | **Historical Quality Tracking** | **Completed** | Summary snapshot persistence (`quality_runs` table, migration `005_create_quality_runs`), Recharts reliability trend line, trend delta interpretation, and chronological run history. |
 | **Phase 8** | **AI Explanation Engine** | **Completed** | Google Gemini 2.5 Flash plain-language synthesis of completeness, quality rules, Isolation Forest anomalies, and reliability score with strict data privacy. |
-| **Phase 9** | **Advanced Analytics Dashboard** | *Planned Next* | Interactive multi-column distribution plots, correlations, and dataset comparison tools. |
+| **Phase 9** | **Dashboard & Product Analytics Polish** | *Planned Next* | Multi-column distribution plots, correlations, and dataset comparison tools. |
 | **Phase 10** | **Production Dashboard & Visualizations** | *Planned* | Recharts interactive visualizations, file upload dropzone, live audit progress. |
 | **Phase 11** | **End-to-End Testing & Hardening** | *Planned* | Integration tests, seed sample datasets, rate-limiting. |
 | **Phase 12** | **Cloud Deployment** | *Planned* | Vercel (Frontend) + Render/Railway (Backend) + Neon (Serverless PostgreSQL). |
@@ -139,7 +139,7 @@ Last Updated: Phase 8 AI-Powered Data Quality Explanation Completion
 
 ---
 
-## 6. Planned Next (Phase 9)
+## 6. Planned Next (Phase 9 — Dashboard & Product Analytics Polish)
 
 - [ ] **Advanced Analytics Dashboard**: Multi-column distribution plots, correlation matrix, and dataset comparisons.
 - [ ] **Data Drift Detection**: Automated statistical divergence tracking between historical quality snapshots.

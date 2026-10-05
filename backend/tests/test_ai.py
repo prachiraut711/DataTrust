@@ -183,4 +183,4 @@ def test_ai_explanation_gemini_malformed_json(client: TestClient, monkeypatch):
         res = client.post(f"/api/datasets/{dataset_id}/ai/explanation", headers=headers)
 
     assert res.status_code == 503
-    assert "temporarily unavailable" in res.json()["detail"].lower()
+    assert "couldn't generate a valid explanation" in res.json()["detail"].lower()
