@@ -51,7 +51,7 @@ export function HomePage() {
       icon: BrainCircuit,
       title: "AI Diagnostics",
       desc: "Gemini-powered root cause analysis for detected quality anomalies.",
-      phase: "Gemini 2.5",
+      phase: "Gemini AI",
     },
   ];
 
