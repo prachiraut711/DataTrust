@@ -100,9 +100,9 @@ export function Navbar() {
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <div className="hidden sm:flex items-center gap-2 mr-2 px-2.5 py-1 rounded-full bg-muted/60 border text-xs text-muted-foreground font-mono">
+              <div className="hidden sm:flex items-center gap-2 mr-2 px-2.5 py-1 rounded-full bg-muted/60 border text-xs text-muted-foreground font-medium">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                Phase 2 Auth Ready
+                System Online
               </div>
 
               <Link to="/login">

@@ -14,10 +14,15 @@ export function RootLayout() {
             <span className="font-semibold text-foreground">DataTrust</span>
             <span>&bull;</span>
             <span>Data Reliability & Quality Verification Platform</span>
+            <span>&bull;</span>
+            <span className="font-mono font-medium text-foreground">v1.0.0</span>
           </div>
           <div className="flex items-center gap-6">
             <span>FastAPI + React + DuckDB + PostgreSQL</span>
-            <span>v0.1.0 (Phase 1 Foundation)</span>
+            <span className="inline-flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Production Ready
+            </span>
           </div>
         </div>
       </footer>

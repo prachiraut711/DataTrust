@@ -243,7 +243,7 @@ export function DatasetDetailPage() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Phase 8: AI Explanation Active
+              AI Diagnostics Active
             </span>
           </div>
         </div>
@@ -554,15 +554,15 @@ export function DatasetDetailPage() {
         <CardHeader className="p-4 pb-2">
           <div className="flex items-center gap-2 text-primary font-semibold text-xs tracking-wider uppercase">
             <Sparkles className="h-4 w-4" />
-            Upcoming Analytical Stages
+            Verification Capabilities
           </div>
           <CardTitle className="text-sm font-semibold">
-            Interactive Analytics & Production Hardening
+            End-to-End Reliability Stack Active
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-1 space-y-2">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Phases 1–8 are now fully active (Authentication, Ingestion, Profiling, Quality Rules Engine, Reliability Score, Isolation Forest Outliers, Historical Quality Tracking, and Gemini AI Explanation). Subsequent phases will introduce multi-column interactive analytics and automated export reporting.
+            Full data verification pipeline is active (JWT Authentication, CSV/Parquet Ingestion, DuckDB Profiling, Quality Rules Engine, 0–100 Reliability Score, Isolation Forest Outliers, Historical Quality Tracking, Gemini AI Diagnostics, and SaaS Workspace Analytics).
           </p>
         </CardContent>
       </Card>

@@ -37,8 +37,7 @@ The system follows a clean modular monolithic architecture designed for clear se
 - **Framework**: React 18 with TypeScript and Vite.
 - **Styling & UI**: Tailwind CSS with custom HSL design tokens, standard shadcn/ui design patterns, and Lucide icons.
 - **Routing & Protection**: React Router DOM with an `AuthProvider` context and `ProtectedRoute` guard ensuring unauthenticated users are redirected to `/login`.
-- **Dataset Management**: Dedicated `/datasets` management screen with drag-and-drop ingestion dialog, and `/datasets/:id` detailed column schema viewer.
-- **Visualization (Planned)**: Recharts for quality metric timelines, distribution histograms, and anomaly scatter plots (Phases 8–10).
+- **Visualization**: Recharts for horizontal comparative bar charts, quality tier donut charts, historical reliability trend lines, and column distribution histograms.
 
 ### 2.2 API & Application Service Layer
 - **Framework**: FastAPI (Python 3.12).
@@ -290,7 +289,7 @@ The system follows a clean modular monolithic architecture designed for clear se
   - `datatrust-frontend`: Node builder + Nginx static server (port `3000` / `80`).
   - `datatrust-backend`: Uvicorn + FastAPI with DuckDB and upload volume mount (port `8000`).
   - `datatrust-postgres`: PostgreSQL 16 Alpine with persistent volume (port `5432`).
-- **Cloud Deployment (Planned)**:
-  - Frontend: Vercel (static edge CDN hosting).
-  - Backend: Render or Railway (containerized FastAPI instance).
-  - Database: Neon Serverless PostgreSQL.
+- **Cloud Deployment**:
+  - Frontend: Vercel (static edge CDN hosting with SPA rewrite rules).
+  - Backend: Render or Railway (containerized FastAPI instance with volume mount for `data/uploads`).
+  - Database: Neon or Supabase Serverless PostgreSQL (managed, connection-pooled).

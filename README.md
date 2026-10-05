@@ -1,316 +1,247 @@
-# DataTrust
+# DataTrust — Data Reliability & Quality Verification Platform
 
-**Data Engineering & Data Science Reliability Platform**
+[![CI Pipeline](https://github.com/your-username/datatrust/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/datatrust/actions/workflows/ci.yml)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/your-username/datatrust)
+[![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688.svg)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18.3-61DAFB.svg)](https://react.dev/)
+[![DuckDB](https://img.shields.io/badge/DuckDB-1.1.3-FFF000.svg)](https://duckdb.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-336791.svg)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-DataTrust is an incremental SaaS platform designed to determine whether CSV and Parquet datasets are trustworthy, well-formed, and statistically sound enough for mission-critical analytics and machine learning pipelines.
-
----
-
-## Project Status
-
-**Phase 9 — SaaS Dashboard & Product Analytics Polish: Completed**
-
-DataTrust provides a unified, production-ready SaaS overview dashboard (`/dashboard`) giving data teams immediate visibility into workspace health and pipeline velocity:
-
-- **Executive Workspace KPIs**: Instant visibility into Total Datasets, Workspace Average Reliability (derived strictly from latest dataset runs, showing unanalyzed status honestly), Datasets Needing Attention (reliability $< 75$), and 7-day Activity Velocity.
-- **Comparative Visualizations**: Horizontal Recharts bar chart ranking datasets by reliability score (0–100 scale) with click-through navigation, paired with a donut chart illustrating quality tier distribution (Excellent, Good, Fair, Poor).
-- **Proactive Risk Triage**: Dedicated "Needs Attention" alert queue highlighting troubled datasets with low scores, accompanied by a clean green state when all datasets are healthy.
-- **Recent Activity Feed**: Chronological workspace-wide audit log tracking up to 10 latest quality snapshots with relative time indicators and direct links.
-- **Sub-15ms Aggregation Guarantee**: Powered by relational PostgreSQL indexing and stored `QualityRun` snapshots with zero heavy ML or raw file parsing on page load.
-
-See [PROJECT_STATUS.md](file:///D:/prachi/Antigravity-Projects\DataTrust\PROJECT_STATUS.md) for current progress and upcoming phase milestones.
+DataTrust is an end-to-end, production-ready data reliability and quality verification SaaS platform. It evaluates CSV and Parquet datasets before they enter analytical pipelines or train machine learning models, calculating an explainable **0–100 DataTrust Reliability Score**, executing **unsupervised statistical anomaly detection**, and synthesizing actionable remediation steps with **Google Gemini AI**—with strict guarantees that zero raw dataset rows ever leave your environment.
 
 ---
 
-## SaaS Dashboard & Product Analytics
+## Table of Contents
 
-> The DataTrust SaaS dashboard delivers high-level operational intelligence across all workspace datasets in sub-15 milliseconds without re-running compute-heavy ML pipelines or reading raw disk files.
-
-Key capabilities include:
-
-1. **Workspace Health KPIs**:
-   - **Total Datasets**: Total registered datasets in the active workspace with evaluated vs. pending counts.
-   - **Average Reliability**: Mathematically sound average across evaluated datasets' latest snapshots. If no runs have been executed yet, displays an explicit "No runs yet" badge rather than misleading default scores.
-   - **Needs Attention**: Real-time counter and alert queue of all datasets with a latest reliability score under 75.0.
-   - **Recent Activity (7 Days)**: Volume of analytical runs completed over a rolling 7-day window.
-2. **Interactive Visualizations**:
-   - **Reliability Comparison Bar Chart**: Horizontal bar chart comparing latest scores across top datasets, color-coded by quality tier (emerald $\ge 90$, blue $\ge 75$, amber $\ge 60$, rose $< 60$). Clicking any bar navigates directly to the dataset's deep inspection view.
-   - **Tier Distribution Donut Chart**: Donut chart breaking down workspace assets across the four reliability tiers.
-3. **Actionable Risk Management**:
-   - **Needs Attention Queue**: Displays warning cards with score badges, tier badges, and last run dates for low-performing datasets.
-   - **Positive Health Confirmation**: Displays an encouraging "All Datasets Healthy" card when all evaluated datasets meet or exceed 75.0 reliability.
-4. **Recent Activity Stream**:
-   - Up to 10 latest quality run snapshots across the workspace showing dataset names, timestamps formatted in relative human time (e.g., "5m ago"), score chips, and row counts.
-
----
-
----
-
-## AI-Powered Quality & Reliability Explanation
-
-> DataTrust uses Gemini to convert existing profiling, quality, anomaly, reliability, and historical metrics into a concise human-readable explanation. Raw uploaded dataset contents are not sent to the AI model.
-
-DataTrust pairs strict deterministic metrics with Google Gemini generative intelligence:
-
-1. **Executive Plain-Language Summary**:
-   - High-level assessment of dataset structural health, completeness, and suitability for ML/analytics.
-2. **Reliability Score Decomposition**:
-   - Plain-language walkthrough explaining how the 50% Quality, 25% Completeness, and 25% Anomaly Health components contributed to the final score.
-3. **Prioritized Issue Detection**:
-   - Badged severity indicators (`High Severity`, `Medium Severity`, `Low Severity`) explaining the root cause and downstream operational impact.
-4. **Actionable Remediation Roadmap**:
-   - Step-by-step guidance on how to fix failing assertions, handle outliers, and sanitize data pipelines.
-5. **Architectural Guardrails**:
-   - Zero raw row transmission guarantee.
-   - Graceful 503 error handling when `GEMINI_API_KEY` is unconfigured or AI service is unreachable.
+- [The Problem](#the-problem)
+- [Key Features](#key-features)
+- [The DataTrust Reliability Score Formula](#the-datatrust-reliability-score-formula)
+- [System Architecture](#system-architecture)
+  - [High-Level Topology](#high-level-topology)
+  - [Dual Database Strategy: PostgreSQL vs. DuckDB](#dual-database-strategy-postgresql-vs-duckdb)
+  - [Data Privacy Guarantees](#data-privacy-guarantees)
+- [Tech Stack](#tech-stack)
+- [Repository Structure](#repository-structure)
+- [Local Development Setup](#local-development-setup)
+  - [Prerequisites](#prerequisites)
+  - [Option A: Quickstart with Docker Compose (Recommended)](#option-a-quickstart-with-docker-compose-recommended)
+  - [Option B: Manual Local Setup](#option-b-manual-local-setup)
+- [Environment Configuration](#environment-configuration)
+- [REST API Overview](#rest-api-overview)
+- [Testing & Quality Assurance](#testing--quality-assurance)
+- [Deployment Readiness & Target Topology](#deployment-readiness--target-topology)
+- [License](#license)
 
 ---
 
-## Historical Quality & Reliability Tracking
+## The Problem
 
-DataTrust allows data teams to monitor dataset health evolution across consecutive pipeline runs:
+Modern data and ML pipelines suffer from silent failures:
 
-1. **Summary Metric Snapshots**:
-   - Each analysis captures: total rows, total columns, quality score, completeness score, anomaly health score, composite reliability score, and outlier percentage.
-   - Preserves metadata without row-level overhead or database bloat.
-2. **Interactive Trend Charting**:
-   - Time-series line chart (0–100 Y-axis) mapping reliability trajectory across all historical audits.
-   - Hover tooltips detailing metric breakdowns per run.
-3. **Run-over-Run Delta Analysis**:
-   - Automated comparison between the latest two runs identifying whether reliability is improving, declining, or stable.
+1. **Garbage In, Garbage Out**: Unnoticed null spikes, out-of-range values, schema drift, and duplicate entries propagate into predictive models and executive dashboards, causing silent degradation.
+2. **Infrastructure Overkill**: Existing data testing frameworks (e.g., Great Expectations, Monte Carlo) often require complex distributed infrastructure (Spark, Airflow, Celery, Trino) that is expensive to run and painful to maintain for small-to-medium datasets.
+3. **Black-Box Metrics**: Most tools produce pass/fail logs without an aggregate, objective measure of tabular reliability or historical drift tracking.
+4. **Data Privacy Hazards**: Using cloud LLMs to diagnose data quality often leaks sensitive tabular records or PII to external third-party models.
+
+**DataTrust solves this** by combining in-process columnar analytics (DuckDB), declarative quality rules, unsupervised machine learning (scikit-learn Isolation Forest), and privacy-preserving generative AI (Google Gemini 2.5 Flash) into a unified, lightweight, sub-15ms responsive SaaS platform.
 
 ---
 
-## Reliability Score & Anomaly Detection
+## Key Features
 
-DataTrust delivers an objective, mathematically transparent measure of tabular data trustworthiness:
-
-1. **Composite Reliability Formula**:
-   - **Quality Component (50%)**: Measures compliance against user-defined data quality assertions (e.g. ranges, unique keys, regex formats). Defaults to 100% when no rules are configured.
-   - **Completeness Component (25%)**: Evaluates dataset cell density ($\max(0, \min(100, 100 - \text{missing\_percentage}))$).
-   - **Anomaly Health Component (25%)**: Penalizes extreme numerical outliers detected by Isolation Forest ($\max(0, 100 - \text{anomaly\_percentage} \times 10)$).
-2. **Isolation Forest Outlier Detection**:
-   - Evaluates numeric feature distributions using tree-based recursive partitioning.
-   - Computes decision function scores to rank and extract up to 5 representative anomalous sample values per column.
-   - Safe observation thresholding skips columns with fewer than 10 observations with clear explanations.
-
-
----
-
-## Dataset Profiling
-
-DataTrust performs deep, in-process statistical profiling on tabular data using DuckDB as its embedded analytical engine:
-
-1. **Dataset Statistics**:
-   - Total row and column counts.
-   - Raw storage size and format identification.
-   - Exact duplicate row detection (`COUNT(*) - COUNT(DISTINCT *)`) and duplicate percentage.
-   - Number of numeric, categorical, temporal, and other columns.
-   - Number of 100% unique columns (primary key candidates).
-2. **Missing-Value Statistics**:
-   - Total missing cells across the entire dataset.
-   - Overall missing-value percentage.
-   - Per-column null count and null rate with horizontal bar chart visualizations.
-3. **Duplicate Statistics**:
-   - Exact duplicate row counts across all columns without in-memory copying.
-   - Per-column distinct counts and uniqueness ratios (`distinct_count / total_rows`).
-4. **Numeric Statistics**:
-   - Minimum, maximum, mean, median, and sample standard deviation.
-   - Automatic 5-bucket distribution histogram for interactive chart rendering.
-5. **Categorical Statistics**:
-   - Cardinality (distinct count).
-   - Most frequent value.
-   - Top 5 values ranked by frequency and percentage share.
-6. **Date / Temporal Statistics**:
-   - Earliest and latest observed dates/timestamps.
-   - Future date count (identifying anomalous dates occurring after the system timestamp).
+- **High-Performance Ingestion & In-Process OLAP**:
+  - Direct chunked streaming upload of `.csv` and `.parquet` files with UUID-based path traversal protection.
+  - Zero PostgreSQL database bloat: DuckDB reads tabular files directly from disk without loading raw contents into SQL tables.
+- **Deep Statistical Profiling**:
+  - Automatic computation of quantiles (25th, median, 75th), min, max, mean, standard deviation, and histogram bins for numeric columns.
+  - Frequency distribution, top categories, and cardinality tracking for categorical columns.
+  - Chronological boundary inspection and future timestamp checks for date/time columns.
+- **Declarative Quality Rules Engine**:
+  - Configure, enable, edit, and evaluate declarative quality checks per column (`not_null`, `unique`, `numeric_range`, `allowed_values`, `email_format`, `no_future_dates`).
+  - Vectorized validation via DuckDB reporting passed/failed statuses and violating row counts.
+- **Unsupervised Statistical Anomaly Detection**:
+  - `scikit-learn` `IsolationForest` detecting subtle multi-dimensional outliers across numerical columns.
+  - User-adjustable contamination factor (1% to 10%).
+  - Identifies top anomalous sample values without manual threshold configuration.
+- **Explainable 0–100 DataTrust Reliability Score**:
+  - Deterministic 3-pillar formula weighting quality compliance, cell completeness, and anomaly health.
+  - Categorization into 4 quality tiers: **Excellent** ($\ge 90$), **Good** ($75–89$), **Fair** ($60–74$), and **Poor** ($< 60$).
+- **Historical Quality Tracking & Trends**:
+  - Save lightweight summary snapshots (`QualityRun`) capturing run-over-run quality metrics.
+  - Interactive Recharts time-series line chart tracking score trajectory over time.
+  - Automated delta calculation (improving, declining, stable) between audits.
+- **Google Gemini AI Explanation Engine**:
+  - Translates complex structural metrics, rule violations, and outlier patterns into an executive diagnosis.
+  - Generates ranked key issues by severity (`high`, `medium`, `low`) and concrete remediation roadmaps.
+  - **Strict Privacy**: Zero raw tabular data is sent to the LLM—only aggregated schema statistics and failure percentages.
+- **Executive SaaS Overview Dashboard**:
+  - Sub-15ms workspace analytics aggregating total datasets, average reliability, low-health triage queue, and 7-day velocity.
+  - Recharts horizontal comparative bar chart and tier distribution donut chart.
+  - Actionable "Needs Attention" triage feed prioritizing datasets with scores $< 75$.
 
 ---
 
-## Problem Statement
+## The DataTrust Reliability Score Formula
 
-Modern data organizations frequently ingest disparate CSV and Parquet files into analytical warehouses and machine learning pipelines without sufficient pre-flight validation. Silently corrupted values, schema drift, unexpected null spikes, invalid ranges, and multi-feature distribution shifts pollute downstream reports and degrade model performance before data engineers notice.
+The **DataTrust Reliability Score** is an explainable, deterministic composite metric bounded between $0.0$ and $100.0$:
 
-Existing solutions tend to fall into two extremes:
-1. **Under-powered basic scripts**: Simple scripts that only check basic column nulls without statistical anomaly detection or composite reliability metrics.
-2. **Heavyweight enterprise frameworks**: Over-engineered systems (e.g. Spark, Kafka, Celery, Airflow, complex distributed vector databases) that introduce immense operational complexity and maintenance overhead for medium-scale SaaS workloads.
+$$\text{Reliability Score} = 0.50 \times \text{Quality} + 0.25 \times \text{Completeness} + 0.25 \times \text{Anomaly Health}$$
 
----
+### Component Breakdown
 
-## Planned Solution
+| Pillar | Weight | Definition & Computation |
+| :--- | :---: | :--- |
+| **Quality** | **50%** | Percentage of passing user-defined quality rules: $\frac{\text{passed checks}}{\text{applicable checks}} \times 100$. Defaults to $100.0\%$ when no rules are configured. |
+| **Completeness** | **25%** | Overall dataset cell density: $\max(0, \min(100, 100 - \text{missing percentage}))$. |
+| **Anomaly Health** | **25%** | Penalty for statistical outliers detected by Isolation Forest: $\max(0, 100 - \text{anomaly percentage} \times 10)$. |
 
-DataTrust delivers a clean, high-performance, developer-friendly reliability engine that evaluates tabular datasets rapidly using an embedded in-process OLAP engine (**DuckDB**) alongside relational metadata persistence (**PostgreSQL**).
+### Quality Tiers
 
-### Features & Implementation Roadmap
-
-- **User Authentication & Workspaces** *(Completed - Phase 2)*: Email/password authentication, bcrypt hashing, stateless JWTs, and automatic workspace creation.
-- **Dataset Ingestion & DuckDB Inspection** *(Completed - Phase 3)*: Upload CSV/Parquet, sanitized storage, DuckDB vectorized profiling (rows, types, nulls, distincts), and schema browser.
-- **Advanced Statistical Profiling** *(Completed - Phase 4)*: In-process calculation of quantiles, min, max, mean, standard deviation, categorical frequencies, missing value distributions, and interactive Recharts visualizations.
-- **Data Quality Engine** *(Completed - Phase 5)*: Configurable declarative assertions (not null, unique, range boundaries, permitted sets, email regex, no future dates), dynamic DuckDB validation, Quality Score, and issues UI.
-- **Reliability Score & Anomaly Detection** *(Completed - Phase 6)*: Objective 0–100 composite index (50% Quality, 25% Completeness, 25% Anomaly Health) and scikit-learn Isolation Forest unsupervised outlier detection on numeric columns.
-- **Historical Quality & Reliability Tracking** *(Completed - Phase 7)*: Snapshot persistence (`quality_runs`), time-series Recharts reliability trend line, delta interpretation, and chronological run history.
-- **AI-Powered Quality Explanation** *(Completed - Phase 8)*: Google Gemini 2.5 Flash plain-language root cause diagnostics and remediation roadmap with strict data privacy.
-- **SaaS Dashboard & Product Analytics Polish** *(Completed - Phase 9)*: Workspace overview, executive KPIs, Recharts horizontal comparison bar chart, donut tier distribution, prioritized attention alerts, recent activity feed, and sub-15ms snapshot aggregation.
-- **Production Readiness, Documentation & Deployment** *(Planned - Phase 10)*: Final end-to-end hardening, container verification, and production deployment guides.
+- **Excellent** ($90.0 - 100.0$): Fully trusted for production analytics and machine learning pipelines.
+- **Good** ($75.0 - 89.9$): Minor non-critical anomalies or completeness gaps; usable with caution.
+- **Fair** ($60.0 - 74.9$): Noticeable rule violations or elevated outlier rates; requires manual inspection.
+- **Poor** ($0.0 - 59.9$): Critical data degradation, failing primary assertions; pipeline blocking recommended.
 
 ---
 
-## Architecture
+## System Architecture
 
-DataTrust is structured as a modular monolith with clear separation between application metadata and analytical execution:
+### High-Level Topology
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│               Frontend (React + Vite + TS)              │
-│       Tailwind CSS + shadcn/ui + React Router          │
+│               Frontend (React 18 + Vite)               │
+│        Tailwind CSS + shadcn/ui + Recharts Charts      │
 └───────────────────────────┬────────────────────────────┘
-                            │ HTTP / REST (Bearer JWT)
+                            │ HTTP / REST API (Bearer JWT)
                             ▼
 ┌────────────────────────────────────────────────────────┐
-│                Backend (FastAPI + Python)              │
-│         Modular Router Structure & Core Settings       │
-└───────────────────────────┬────────────────────────────┘
-                            │
-              ┌─────────────┴─────────────┐
-              ▼                           ▼
+│               Backend (FastAPI + Python 3.12)          │
+│            Modular Routers & Pydantic v2 Schemas       │
+└──────────────┬───────────────────────────┬─────────────┘
+               │                           │
+               ▼                           ▼
 ┌───────────────────────────┐ ┌───────────────────────────┐
-│     Metadata Database     │ │   Analytical Engine       │
-│        PostgreSQL         │ │     Embedded DuckDB       │
-│  (Users, Datasets, DDL)   │ │   (Direct Parquet/CSV)    │
-└───────────────────────────┘ └───────────────────────────┘
+│     Metadata Database     │ │   Analytical Data Engine  │
+│        PostgreSQL         │ │      Embedded DuckDB      │
+│  (Users, Workspaces, DDL, │ │  (In-Process Columnar     │
+│   Rules, Run Snapshots)   │ │   Aggregation over Disk)  │
+└───────────────────────────┘ └─────────────┬─────────────┘
+                                            │
+               ┌────────────────────────────┼────────────────────────────┐
+               ▼                            ▼                            ▼
+┌───────────────────────────┐ ┌───────────────────────────┐ ┌───────────────────────────┐
+│   Statistical Profiler    │ │  Isolation Forest Anomaly │ │     Gemini AI Engine      │
+│     (NumPy / Pandas)      │ │   (scikit-learn Unsupervised)│ │   (google-genai SDK)      │
+│   Quantiles, Histograms   │ │   Feature Vector Outliers │ │   Aggregated Metrics Only │
+└───────────────────────────┘ └───────────────────────────┘ └───────────────────────────┘
 ```
 
-For an in-depth breakdown of database separation, schema models, and data lifecycles, read [docs/ARCHITECTURE.md](file:///D:/prachi/Antigravity-Projects/DataTrust/docs/ARCHITECTURE.md) and [docs/DATA_FLOW.md](file:///D:/prachi/Antigravity-Projects/DataTrust/docs/DATA_FLOW.md).
+### Dual Database Strategy: PostgreSQL vs. DuckDB
+
+DataTrust utilizes a purpose-built dual storage architecture that balances transactional integrity with analytical performance:
+
+1. **PostgreSQL (Operational Metadata)**:
+   - Manages user accounts, salted password hashes, and JWT auth sessions.
+   - Enforces multi-tenant workspace isolation and dataset ownership via foreign key cascades.
+   - Stores declarative data quality rule definitions and historical `QualityRun` snapshot summaries.
+   - Guaranteed sub-15ms dashboard aggregation queries via targeted indices on `workspace_id`, `dataset_id`, and `created_at`.
+2. **DuckDB (In-Process Analytical OLAP)**:
+   - Executes zero-copy scans directly over raw `.csv` and `.parquet` files stored on disk.
+   - Computes column-level aggregations (null rates, distinct cardinalities, histograms) without copying row data into PostgreSQL.
+   - Operates embedded in the FastAPI process with zero networking latency, zero external daemons, and zero cluster overhead.
+
+### Data Privacy Guarantees
+
+DataTrust enforces strict architectural boundaries to guarantee that sensitive tabular data remains secure:
+
+- **Zero Raw Data Sent to External LLMs**: When generating AI Quality Explanations via Google Gemini, the platform never transmits raw CSV or Parquet rows, column cell contents, or user credentials.
+- **Metric-Only Synthesis**: The AI prompt receives strictly sanitized structural telemetry: row/column counts, overall completeness percentage, names of failed validation rules, outlier percentages, and calculated reliability scores.
+- **Air-Gapped Local Processing**: DuckDB profiling and Isolation Forest anomaly detection execute entirely in-process on the local host or container filesystem.
+- **Path Traversal Protection**: Uploaded files receive unpredictable UUID-based filenames (`<uuid4>.csv` / `<uuid4>.parquet`) and are validated against root directory escapes using strict path resolution.
 
 ---
 
-## Technology Stack
+## Tech Stack
 
-### Frontend
-- **Framework**: React 18
-- **Language**: TypeScript
-- **Tooling**: Vite
-- **Styling**: Tailwind CSS with custom design tokens
-- **Components**: shadcn/ui architectural pattern
-- **Icons**: Lucide React
-- **Routing**: React Router DOM v6 with `ProtectedRoute`
-- **State**: React Context API (`AuthContext`)
-- **Charts**: Recharts (missing value distribution, histograms, reliability trends, horizontal comparisons, donut distribution)
-
-### Backend
-- **Framework**: FastAPI
-- **Language**: Python 3.12
-- **Validation**: Pydantic v2 & Pydantic Settings
-- **Analytical Processing**: DuckDB (in-process columnar engine)
-- **ORM / Persistence**: SQLAlchemy 2.0 with PostgreSQL drivers (`psycopg` & `psycopg2-binary`)
-- **Database Migrations**: Alembic
-- **Security & Authentication**: `bcrypt` (salted password hashing), `PyJWT` (stateless tokens)
-- **Testing**: Pytest & HTTPX TestClient (62 automated tests)
-
-### Data & Machine Learning
-- **Data Manipulation**: Pandas, NumPy
-- **Machine Learning**: Scikit-learn (`IsolationForest` for anomaly detection)
-- **AI Explanation**: Google Gemini API (`gemini-2.5-flash` via official `google-genai` SDK)
-
-### Infrastructure & DevOps
-- **Containerization**: Docker & Docker Compose
-- **Continuous Integration**: GitHub Actions
-- **Planned Production Deployment**: Vercel (Frontend) + Render/Railway (Backend) + Neon (Serverless PostgreSQL)
+| Domain | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Frontend** | React 18, TypeScript, Vite | Modern, typed single-page application |
+| **UI Styling** | Tailwind CSS, shadcn/ui, Lucide Icons | Clean, accessible design system and components |
+| **Visualizations** | Recharts | Horizontal comparison bars, tier donuts, trend lines |
+| **Backend API** | FastAPI (Python 3.12), Pydantic v2 | High-performance asynchronous REST API |
+| **Security & Auth** | bcrypt, PyJWT | Salted password hashing, stateless JWT Bearer tokens |
+| **Relational DB** | PostgreSQL 16, SQLAlchemy 2.0, Alembic | Persistent metadata storage & versioned migrations |
+| **Analytical OLAP** | DuckDB (Embedded) | In-process vectorized file scanning and aggregation |
+| **Data Science / ML**| scikit-learn, NumPy, Pandas | Unsupervised Isolation Forest statistical anomaly detection |
+| **Generative AI** | Google GenAI SDK (`gemini-2.5-flash`) | Explainable plain-language quality diagnostic synthesis |
+| **DevOps / Containers**| Docker, Docker Compose, Nginx | Multi-container reproducible development and deployment |
+| **CI / CD** | GitHub Actions | Automated linting, test suites, and build verification |
 
 ---
 
-## Project Structure
+## Repository Structure
 
-```
+```text
 DataTrust/
 ├── .github/
 │   └── workflows/
-│       └── ci.yml               # Automated CI pipeline (Backend tests + Frontend build)
+│       └── ci.yml               # GitHub Actions CI workflow (pytest + build)
 ├── backend/
-│   ├── alembic/                 # Alembic migration management
-│   │   ├── versions/            # 001_initial, 002_create_datasets, 003_columns, 004_rules, 005_runs
-│   │   └── env.py               # Dynamic database URL configuration
+│   ├── alembic/                 # Database migrations (001 through 005)
 │   ├── app/
-│   │   ├── api/                 # API routers and endpoints
-│   │   │   ├── auth.py          # Register, Login, Me endpoints
-│   │   │   ├── datasets.py      # Upload, List, Details, Delete, Profile, Rules, Anomalies, AI
-│   │   │   ├── dashboard.py     # Workspace SaaS overview analytics
-│   │   │   ├── deps.py          # FastAPI auth and db dependencies
-│   │   │   └── router.py        # Central API router
-│   │   ├── core/                # Centralized settings and security
-│   │   │   ├── config.py        # Pydantic BaseSettings & upload config
-│   │   │   └── security.py      # Bcrypt hashing & JWT utilities
-│   │   ├── database/            # SQLAlchemy session and engine
-│   │   ├── models/              # Database ORM models
-│   │   │   ├── user.py          # User model (UUID, email, password_hash)
-│   │   │   ├── workspace.py     # Workspace model (UUID, name, owner_id)
-│   │   │   ├── dataset.py       # Dataset model (UUID, filename, format, size, rows)
-│   │   │   ├── dataset_column.py# DatasetColumn model (types, nulls, distincts)
-│   │   │   ├── quality_rule.py  # QualityRule model (assertions & configuration)
-│   │   │   └── quality_run.py   # QualityRun model (persisted metric snapshots)
+│   │   ├── api/routes/          # Modular FastAPI routers
+│   │   │   ├── auth.py          # /api/auth (register, login, me)
+│   │   │   ├── datasets.py      # /api/datasets (CRUD, profile, rules, runs, AI)
+│   │   │   ├── dashboard.py     # /api/dashboard (summary KPIs & distributions)
+│   │   │   └── health.py        # /api/health
+│   │   ├── core/
+│   │   │   ├── config.py        # Centralized Pydantic Settings & CORS parsing
+│   │   │   ├── database.py      # SQLAlchemy engine & session factory
+│   │   │   └── security.py      # bcrypt hashing & JWT token issuing
+│   │   ├── models/              # SQLAlchemy ORM models (User, Workspace, Dataset, etc.)
 │   │   ├── schemas/             # Pydantic validation schemas
-│   │   │   ├── auth.py          # UserRegister, UserLogin, TokenResponse
-│   │   │   ├── dataset.py       # DatasetResponse, DatasetDetailResponse
-│   │   │   ├── dashboard.py     # DashboardSummaryResponse, DashboardDatasetItem
-│   │   │   ├── health.py        # HealthCheckResponse
-│   │   │   ├── history.py       # QualityRunResponse
-│   │   │   ├── profiling.py     # DatasetProfileResponse
-│   │   │   ├── quality.py       # QualityRuleCreate, QualityEvaluationResponse
-│   │   │   ├── reliability.py   # ReliabilityScoreResponse
-│   │   │   └── ai.py            # AIQualityExplanation
-│   │   ├── services/            # Modular domain services
-│   │   │   ├── datasets/        # Dataset orchestration & DuckDB inspection
-│   │   │   ├── profiling/       # Statistical profiling engine
-│   │   │   ├── quality/         # Rule evaluation engine
-│   │   │   ├── anomaly/         # Isolation Forest anomaly detection
-│   │   │   ├── reliability/     # Explainable composite score engine
-│   │   │   ├── history/         # Snapshot & trend persistence
-│   │   │   ├── ai/              # Gemini explanation service
-│   │   │   ├── dashboard/       # SaaS workspace overview aggregator
+│   │   ├── services/            # Domain service layer
+│   │   │   ├── datasets/        # Ingestion & DuckDB schema inspection
+│   │   │   ├── profiling/       # Statistical metrics & quantile profiler
+│   │   │   ├── quality/         # Dynamic DuckDB rule evaluation engine
+│   │   │   ├── anomaly/         # scikit-learn Isolation Forest service
+│   │   │   ├── reliability/     # 3-pillar explainable reliability engine
+│   │   │   ├── history/         # Snapshot persistence & trend tracking
+│   │   │   ├── ai/              # Google Gemini plain-language explanation
+│   │   │   ├── dashboard/       # Sub-15ms SaaS dashboard aggregator
 │   │   │   └── storage/         # Local filesystem storage abstraction
-│   │   └── main.py              # FastAPI application entrypoint
-│   ├── tests/                   # Pytest test suite (62 unit/integration tests)
-│   │   ├── conftest.py          # In-memory SQLite fixtures & client overrides
-│   │   ├── test_auth.py         # Authentication test cases
-│   │   ├── test_datasets.py     # Dataset upload, DuckDB inspection, & security tests
-│   │   ├── test_profiling.py    # Analytical profiling tests
-│   │   ├── test_quality.py      # Quality rules CRUD and evaluation tests
-│   │   ├── test_anomaly.py      # Statistical anomaly detection tests
-│   │   ├── test_reliability.py  # Reliability score formula tests
-│   │   ├── test_history.py      # Historical snapshot & trend tests
-│   │   ├── test_ai.py           # Gemini AI explanation tests
-│   │   ├── test_dashboard.py    # Workspace dashboard summary tests
-│   │   └── test_health.py       # Health and root endpoint tests
-│   ├── .env.example             # Backend environment template
+│   │   └── main.py              # Application entrypoint & global error handlers
+│   ├── tests/                   # 62 unit and integration tests (Pytest)
+│   ├── .env.example             # Backend environment variables template
 │   ├── Dockerfile               # Backend container image
 │   └── requirements.txt         # Pinned Python dependencies
 ├── frontend/
 │   ├── src/
-│   │   ├── components/ui/       # UI primitive components (Button, Card, ProtectedRoute)
-│   │   ├── components/dashboard/# ReliabilityOverviewChart, ReliabilityDistributionChart, RecentActivity, NeedsAttention
-│   │   ├── components/          # UploadDatasetDialog, ProfilingOverview, etc.
-│   │   ├── context/             # AuthContext provider and useAuth hook
+│   │   ├── components/          # UI components & dialogs
+│   │   │   ├── dashboard/       # SaaS KPI cards, bar charts, donut charts, feeds
+│   │   │   └── ui/              # Button, Card, Badge, Dialog, Table primitives
+│   │   ├── context/             # AuthContext provider and session state
 │   │   ├── layouts/             # Navbar and RootLayout
-│   │   ├── pages/               # HomePage, LoginPage, RegisterPage, DashboardPage,
-│   │   │                        # DatasetsPage, DatasetDetailPage
-│   │   ├── services/            # API client (auth, datasets, health, dashboard)
-│   │   ├── types/               # TypeScript interfaces (User, Dataset, Dashboard, etc.)
-│   │   ├── App.tsx              # Application route definitions
-│   │   └── main.tsx             # React DOM entrypoint
-│   ├── .env.example             # Frontend environment template
-│   ├── Dockerfile               # Multi-stage production build
-│   ├── package.json             # NPM package manifest
-│   ├── tailwind.config.js       # Tailwind CSS configuration
-│   └── vite.config.ts           # Vite configuration
+│   │   ├── pages/               # HomePage, DashboardPage, DatasetsPage, DetailPage
+│   │   ├── services/            # API client (Axios/Fetch wrappers)
+│   │   └── types/               # TypeScript interfaces
+│   ├── .env.example             # Frontend environment variables template
+│   ├── Dockerfile               # Multi-stage production Nginx container image
+│   ├── package.json             # Frontend dependencies & scripts (v1.0.0)
+│   └── vite.config.ts           # Vite build configuration
 ├── data/
-│   ├── sample/                  # Safe sample datasets (orders_sample.csv)
+│   ├── sample/                  # orders_sample.csv (included test dataset)
 │   └── uploads/                 # Local directory for uploaded files (.gitignore protected)
 ├── docs/
-│   ├── ARCHITECTURE.md          # Technical architecture overview & schema models
-│   └── DATA_FLOW.md             # End-to-end dataset lifecycle documentation
-├── .gitignore                   # Ignore rules for Python, Node, datasets, and secrets
-├── docker-compose.yml           # Local multi-container development environment
-├── PROJECT_STATUS.md            # Roadmap and phase milestone tracker
+│   ├── ARCHITECTURE.md          # Comprehensive architecture & design principles
+│   └── DATA_FLOW.md             # End-to-end data lifecycle documentation
+├── .env.example                 # Root environment variables template
+├── .gitignore                   # Strict security ignore rules (.env, uploads, caches)
+├── docker-compose.yml           # Multi-container orchestration definition
+├── PROJECT_STATUS.md            # Detailed milestone roadmap and phase tracker
 └── README.md                    # Project documentation
 ```
 
@@ -319,17 +250,49 @@ DataTrust/
 ## Local Development Setup
 
 ### Prerequisites
-- Node.js (v18+)
-- Python (v3.11+)
-- PostgreSQL (or run via Docker)
 
-### 1. Backend Setup
+- **Docker & Docker Compose** (Recommended), OR:
+- **Python** 3.11+
+- **Node.js** 18+ & **npm** 9+
+- **PostgreSQL** 15+
+
+---
+
+### Option A: Quickstart with Docker Compose (Recommended)
+
+Running the entire stack with Docker Compose automatically starts PostgreSQL, runs database migrations via Alembic, starts the FastAPI backend, and serves the optimized React frontend:
 
 ```bash
-# Navigate to backend directory
+# 1. Clone the repository
+git clone https://github.com/your-username/datatrust.git
+cd datatrust
+
+# 2. (Optional) Provide your Gemini API key in a root .env file:
+# echo "GEMINI_API_KEY=your_key_here" > .env
+
+# 3. Launch the container stack
+docker compose up --build
+```
+
+Once launched, the services are available at:
+
+| Service | URL | Notes |
+| :--- | :--- | :--- |
+| **Frontend Web App** | [http://localhost:3000](http://localhost:3000) | Nginx production container |
+| **Backend API** | [http://localhost:8000](http://localhost:8000) | FastAPI + Uvicorn server |
+| **Swagger API Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | Interactive OpenAPI specification |
+| **PostgreSQL** | `localhost:5432` | Credentials: `datatrust_user` / `datatrust_pass` |
+
+---
+
+### Option B: Manual Local Setup
+
+#### 1. Backend Setup
+
+```bash
 cd backend
 
-# Create and activate a virtual environment
+# Create and activate virtual environment
 python -m venv .venv
 # On Windows:
 .\.venv\Scripts\activate
@@ -339,75 +302,198 @@ source .venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Configure environment variables
+# Configure environment
 cp .env.example .env
+# Edit .env to set DATABASE_URL (e.g., postgresql://datatrust_user:datatrust_pass@localhost:5432/datatrust)
 
 # Run database migrations
 alembic upgrade head
 
-# Run tests
+# Run backend tests
 pytest -v
 
-# Start the FastAPI server
+# Start development server
 uvicorn app.main:app --reload --port 8000
 ```
 
-The API will be accessible at:
-- Root: `http://localhost:8000/`
-- Health: `http://localhost:8000/api/health`
-- Auth Endpoints: `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`
-- Dataset Endpoints: `POST /api/datasets`, `GET /api/datasets`, `GET /api/datasets/{id}`, `DELETE /api/datasets/{id}`
-- Swagger Docs: `http://localhost:8000/docs`
-
-### 2. Frontend Setup
+#### 2. Frontend Setup
 
 ```bash
-# Navigate to frontend directory
 cd frontend
 
 # Install dependencies
 npm install
 
-# Configure environment variables
+# Configure environment
 cp .env.example .env
+# Default points to VITE_API_URL=http://localhost:8000
 
-# Start development server
+# Start Vite dev server
 npm run dev
 ```
 
-The web application will be accessible at:
-- Web UI: `http://localhost:5173`
-- Unauthenticated access to `/dashboard` or `/datasets` redirects to `/login`.
+Access the frontend at `http://localhost:5173`.
 
 ---
 
-## Docker Setup
+## Environment Configuration
 
-To run the entire stack (PostgreSQL, Backend API with DuckDB, and Frontend) locally via Docker Compose:
+DataTrust provides `.env.example` templates at the root, `backend/`, and `frontend/` directories:
 
-```bash
-# From the project root
-docker compose up --build
+### Root & Backend Variables (`.env`)
+
+```ini
+# Application Environment (development, staging, production, testing)
+ENVIRONMENT=development
+
+# Database Configuration
+DATABASE_URL=postgresql://datatrust_user:datatrust_pass@localhost:5432/datatrust
+POSTGRES_USER=datatrust_user
+POSTGRES_PASSWORD=datatrust_pass
+POSTGRES_DB=datatrust
+
+# JWT Authentication
+JWT_SECRET_KEY=change-this-to-a-very-secure-random-secret-in-production
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=1440
+
+# CORS Configuration (comma-separated origins or JSON array)
+CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+
+# Storage Configuration
+UPLOAD_DIR=../data/uploads
+MAX_UPLOAD_SIZE_MB=50
+
+# Google Gemini AI Integration (Optional)
+# If omitted, AI explanation endpoints return a graceful 503 with instructions
+GEMINI_API_KEY=
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
-Services will be exposed at:
-- Frontend: `http://localhost:3000`
-- Backend API: `http://localhost:8000`
-- PostgreSQL: `localhost:5432`
+### Frontend Variables (`frontend/.env`)
+
+```ini
+# Backend API Base URL
+VITE_API_URL=http://localhost:8000
+```
 
 ---
 
-## Planned Deployment
+## REST API Overview
 
-- **Frontend**: Automated deployments on [Vercel](https://vercel.com) connecting to the GitHub repository.
-- **Backend**: Containerized deployment on [Render](https://render.com) or [Railway](https://railway.app).
-- **Database**: Serverless PostgreSQL instance hosted on [Neon](https://neon.tech).
+All authenticated endpoints require a Bearer token: `Authorization: Bearer <jwt_token>`.
+
+### Authentication & Workspaces
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/auth/register` | Register a new user and provision default workspace |
+| `POST` | `/api/auth/login` | Authenticate and obtain JWT access token |
+| `GET` | `/api/auth/me` | Fetch active user profile and workspace details |
+
+### Dataset Management
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/datasets` | Upload a `.csv` or `.parquet` dataset |
+| `GET` | `/api/datasets` | List all datasets in active workspace |
+| `GET` | `/api/datasets/{id}` | Get dataset metadata, dimensions, and column schemas |
+| `DELETE`| `/api/datasets/{id}` | Cascade delete dataset metadata, rules, runs, and disk file |
+
+### Profiling & Quality Rules
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/datasets/{id}/profile` | Compute DuckDB statistical profiling metrics & distributions |
+| `GET` | `/api/datasets/{id}/quality-rules` | List configured quality rules |
+| `POST` | `/api/datasets/{id}/quality-rules` | Create a declarative quality rule |
+| `PUT` | `/api/datasets/{id}/quality-rules/{rule_id}` | Update rule configuration or enabled state |
+| `DELETE`| `/api/datasets/{id}/quality-rules/{rule_id}` | Delete a quality rule |
+| `POST` | `/api/datasets/{id}/quality/evaluate` | Execute vectorized DuckDB quality rule evaluation |
+
+### Anomaly Detection & Reliability Scoring
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/datasets/{id}/anomalies/detect` | Run Isolation Forest anomaly detection |
+| `GET` | `/api/datasets/{id}/reliability` | Calculate 3-pillar composite Reliability Score |
+
+### Historical Snapshots & AI Explanation
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/datasets/{id}/runs` | Execute analysis and persist a historical `QualityRun` snapshot |
+| `GET` | `/api/datasets/{id}/runs` | List chronological historical runs (newest first) |
+| `GET` | `/api/datasets/{id}/runs/{run_id}` | Fetch a specific historical run snapshot |
+| `POST` | `/api/datasets/{id}/ai/explanation` | Generate privacy-preserving Gemini AI quality diagnosis |
+
+### SaaS Dashboard & System Health
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/dashboard/summary` | Sub-15ms workspace KPIs, comparison chart, tier donut, triage feed |
+| `GET` | `/api/health` | Service health status check |
 
 ---
 
-## Future Improvements
+## Testing & Quality Assurance
 
-- Automated schema drift alerting with webhook integrations (Slack, email).
-- Support for streaming data pipelines or delta table directories.
-- Custom SQL assertion editor with query execution sandboxing.
-- Batch export of dataset audit certificates in PDF or JSON format.
+DataTrust maintains a comprehensive automated testing suite covering unit logic, database transactions, analytical engines, and end-to-end API workflows:
+
+```bash
+# Run the complete backend test suite (62 tests)
+cd backend
+pytest -v
+```
+
+### Test Coverage Highlights
+
+- **Authentication & Security (`test_auth.py`)**: Registration, duplicate prevention, password hashing, JWT expiration, workspace auto-provisioning.
+- **Dataset Ingestion & Storage (`test_datasets.py`)**: File format enforcement, size validation, UUID path isolation, DuckDB inspection, workspace-scoped access.
+- **Statistical Profiling (`test_profiling.py`)**: Quantile accuracy, histogram binning, missing value distributions, categorical cardinalities.
+- **Quality Rules Engine (`test_quality.py`)**: Rule CRUD, boundary conditions, dynamic DuckDB SQL generation, violating row counts.
+- **Anomaly Detection (`test_anomaly.py`)**: Isolation Forest execution, contamination parameters, observation threshold skips, sample extraction.
+- **Reliability Scoring (`test_reliability.py`)**: 3-pillar formula validation, default weight behaviors, tier classifications.
+- **Historical Snapshots (`test_history.py`)**: Snapshot persistence, chronological sorting, run-over-run deltas, zero raw row storage.
+- **Gemini AI Explanation (`test_ai.py`)**: Prompt sanitization assertions (zero raw rows passed), graceful 503 handling when key is missing, mock response schema parsing.
+- **SaaS Dashboard Aggregator (`test_dashboard.py`)**: Workspace-level KPI calculations, attention queue categorization, 7-day rolling window filtering.
+
+```bash
+# Verify the frontend production build
+cd frontend
+npm run build
+```
+
+---
+
+## Deployment Readiness & Target Topology
+
+DataTrust is architected for seamless cloud deployment:
+
+```
+[ Web Browser ]
+      │
+      ├──────────────────────────────┐
+      ▼ (Static Assets & SPA)         ▼ (API Requests /api/*)
+┌───────────────────────────┐ ┌───────────────────────────────────────────┐
+│     Vercel Edge CDN       │ │        Render / Railway Container         │
+│  React + Vite Production  │ │         FastAPI + Uvicorn Worker          │
+│  Rewrite rules to index   │ │     Mounted Volume for data/uploads       │
+└───────────────────────────┘ └─────────────────────┬─────────────────────┘
+                                                    │
+                                                    ▼ (Managed PostgreSQL)
+                                      ┌───────────────────────────┐
+                                      │  Neon / Supabase Serverless│
+                                      │   PostgreSQL 16 Instance  │
+                                      └───────────────────────────┘
+```
+
+1. **Frontend Hosting (Vercel)**:
+   - Automated continuous deployment triggered by Git branch pushes.
+   - Global Edge CDN caching with client-side SPA routing (`rewrites: [{ "source": "/(.*)", "destination": "/index.html" }]`).
+2. **Backend API (Render or Railway)**:
+   - Containerized FastAPI deployment utilizing `backend/Dockerfile`.
+   - Automatic execution of database migrations on deploy: `sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"`.
+   - Attached persistent disk volume mounted at `/app/data/uploads` to store dataset files.
+3. **Database (Neon Serverless PostgreSQL or Supabase)**:
+   - Managed PostgreSQL 16 with automated connection pooling and point-in-time recovery.
+
+---
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.

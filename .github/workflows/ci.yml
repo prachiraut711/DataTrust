@@ -26,10 +26,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
 
-      - name: Run backend health & startup tests
+      - name: Run backend test suite
         run: |
           cd backend
           pytest -v
+        env:
+          JWT_SECRET_KEY: ci-testing-jwt-secret-key-min-32-chars-long
+          DATABASE_URL: sqlite:///:memory:
+          ENVIRONMENT: testing
+          GEMINI_API_KEY: ""
 
   frontend-checks:
     name: Frontend Typecheck & Build
@@ -55,3 +60,5 @@ jobs:
         run: |
           cd frontend
           npm run build
+        env:
+          VITE_API_URL: http://localhost:8000

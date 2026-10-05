@@ -21,37 +21,37 @@ export function HomePage() {
       icon: FileSpreadsheet,
       title: "Dataset Ingestion",
       desc: "Upload CSV or Parquet files with zero cloud lock-in.",
-      phase: "Phase 3",
+      phase: "Ingestion",
     },
     {
       icon: Cpu,
       title: "High-Speed Profiling",
       desc: "In-memory analytical profiling powered by embedded DuckDB.",
-      phase: "Phase 4",
+      phase: "Profiling",
     },
     {
       icon: CheckCircle2,
       title: "Quality Validation",
       desc: "Multi-dimensional rule verification across completeness and schema.",
-      phase: "Phase 5",
+      phase: "Rules Engine",
     },
     {
       icon: Gauge,
       title: "Reliability Score",
       desc: "Objective 0-100 index rating dataset trust for production ML.",
-      phase: "Phase 6",
+      phase: "0-100 Score",
     },
     {
       icon: AlertTriangle,
       title: "Anomaly Detection",
       desc: "Isolation Forest unsupervised outlier isolation across distributions.",
-      phase: "Phase 7",
+      phase: "Isolation Forest",
     },
     {
       icon: BrainCircuit,
-      title: "AI Explanation",
+      title: "AI Diagnostics",
       desc: "Gemini-powered root cause analysis for detected quality anomalies.",
-      phase: "Phase 9",
+      phase: "Gemini 2.5",
     },
   ];
 
@@ -78,7 +78,7 @@ export function HomePage() {
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <Link to="/dashboard">
             <Button size="lg" className="gap-2">
-              Open Dashboard Shell
+              Open SaaS Dashboard
               <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>

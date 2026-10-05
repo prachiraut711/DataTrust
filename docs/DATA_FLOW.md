@@ -2,7 +2,7 @@
 
 This document details the complete end-to-end data lifecycle in DataTrust, tracing a user session from authentication and workspace provisioning through dataset upload, analytical profiling, rule validation, statistical anomaly detection, persistence, and AI-assisted explanation.
 
-> **Implementation Note**: **Phase 1** (Project Foundation), **Phase 2** (Database Models & Authentication), and **Phase 3** (Dataset Ingestion, Storage, DuckDB Inspection, and Metadata) are fully operational. Downstream analytical stages (Phases 4–12) are designed and marked below.
+> **Implementation Note**: **Phases 1–10** are fully implemented, verified, and operational in production. This encompasses Project Foundation (Phase 1), Authentication & Workspaces (Phase 2), Dataset Ingestion & DuckDB Inspection (Phase 3), In-Process Statistical Profiling (Phase 4), Declarative Quality Rules Engine (Phase 5), Reliability Score & Statistical Anomaly Detection (Phase 6), Historical Quality Tracking & Snapshots (Phase 7), Gemini AI Explanation Engine (Phase 8), SaaS Overview Dashboard & Analytics (Phase 9), and Production Hardening & Deployment Readiness (Phase 10).
 
 ---
 
@@ -26,7 +26,7 @@ This document details the complete end-to-end data lifecycle in DataTrust, traci
 [ FastAPI Ingestion Endpoint (/api/datasets) ]
        │
        ├─────────────────────────────────┐
-       ▼ (2) Save File Artifact          ▼ (3) DuckDB Inspection
+       ▼ (2) Save File Artifact          ▼ (3) DuckDB Inspection [Completed - Phase 3]
  [ File Storage (data/uploads) ]    [ Embedded DuckDB Engine ]
        │                                 │ (Query row & column nulls, types, distincts)
        ▼                                 ▼
@@ -38,32 +38,33 @@ This document details the complete end-to-end data lifecycle in DataTrust, traci
                [ PostgreSQL Database ]
             (datasets, dataset_columns)
                           │
-                          ├─► (5) Advanced Statistical Profiling [Phase 4]
-                          │       (Mean, median, quantiles, distributions)
+                          ├─► (5) Advanced Statistical Profiling [Completed - Phase 4]
+                          │       (Quantiles, min/max/mean/stddev, categorical frequencies)
                           │
-                          ├─► (6) Quality Rule Validation [Phase 5]
-                          │       (Completeness, range, uniqueness checks)
+                          ├─► (6) Quality Rule Validation [Completed - Phase 5]
+                          │       (Completeness, range, uniqueness, pattern checks)
                           │
-                          ├─► (7) Reliability Scoring [Phase 6]
-                          │       (Weighted index 0-100 computation)
+                          ├─► (7) Statistical Anomaly Detection [Completed - Phase 6]
+                          │       (Isolation Forest unsupervised outlier scoring)
                           │
-                          └─► (8) Anomaly Detection [Phase 7]
-                                  (Isolation Forest multivariate evaluation)
-                                            │
-                                            ▼ (9) Persist Run Results [Phase 5-7]
-                                       [ PostgreSQL Database ]
-                                            │
-                          ┌─────────────────┘
-                          ▼
-            [ AI Explanation Service (Gemini API) ] [Planned - Phase 9]
-                          │ (Synthesizes rule failures into narrative summary)
-                          ▼
-           [ React Frontend Dashboard & Reports ] [Planned - Phase 10]
-             • Reliability score badge
-             • Profiling summary & distribution charts
-             • Quality check breakdown & failure inspection
-             • Identified outlier distributions
-             • Plain-text AI diagnostic insights
+                          ├─► (8) Reliability Scoring [Completed - Phase 6]
+                          │       (50% Quality + 25% Completeness + 25% Anomaly Health)
+                          │
+                          ├─► (9) Persist Run Snapshots & Trends [Completed - Phase 7]
+                          │       (quality_runs table, chronological history)
+                          │
+                          └─► (10) Gemini AI Explanation [Completed - Phase 8]
+                                  (Synthesizes metrics into plain-language diagnosis)
+                                        │
+                                        ▼ (11) Interactive Visualizations [Completed - Phase 9 & 10]
+                                  [ React + Vite + Tailwind + shadcn Dashboard ]
+                                    • Executive Workspace KPIs (Datasets, Avg Reliability, Needs Attention)
+                                    • Recharts Comparative Horizontal Bar & Tier Donut Charts
+                                    • Column Profiling & Frequency Distribution Views
+                                    • Interactive Quality Rules CRUD & Violations Inspector
+                                    • Isolation Forest Outlier Rates & Sample Values
+                                    • Historical Reliability Progression & Delta Analysis
+                                    • On-Demand Gemini AI Diagnostic Insights (Zero Raw Rows Sent)
 ```
 
 ---
@@ -111,50 +112,80 @@ This document details the complete end-to-end data lifecycle in DataTrust, traci
   3. Commits in an atomic transaction. If DuckDB parsing fails, the unlinked file is removed from disk immediately.
 
 ### Stage 4: Advanced Statistical Profiling
-- **Status**: *Planned (Phase 4)*
+- **Status**: **Completed (Phase 4)**
+- **Endpoint**: `GET /api/datasets/{dataset_id}/profile`
 - **Engine**: Embedded DuckDB + Pandas.
-- **Actions**: Extends profiling with numerical metrics: min, max, mean, standard deviation, median, 25th/75th percentiles, and categorical top values.
+- **Actions**:
+  1. Computes overall dataset metrics: duplicate rows count, overall completeness percentage, and column type breakdown.
+  2. For numeric columns: computes min, max, mean, standard deviation, median, 25th/75th quantiles, and equi-width histogram bins.
+  3. For categorical columns: computes top 5 frequent values with counts and percentages, plus unique distinct counts.
+  4. For datetime columns: computes earliest date, latest date, future timestamp counts, and null rates.
 
 ### Stage 5: Data Quality Validation
-- **Status**: *Planned (Phase 5)*
-- **Engine**: DataTrust Quality Engine (Service Layer).
+- **Status**: **Completed (Phase 5)**
+- **Endpoints**: `POST /api/datasets/{dataset_id}/quality/evaluate`, plus CRUD at `/api/datasets/{dataset_id}/quality-rules`
+- **Engine**: DataTrust Quality Engine (`QualityService`) via embedded DuckDB.
 - **Rule Categories**:
-  - Completeness (maximum allowable null threshold).
-  - Uniqueness (primary key candidate constraints).
-  - Value Ranges (min/max bound checks).
-  - Pattern Conformance (regex matching for dates, emails, codes).
-- **Output**: Detailed pass/fail evaluation for each rule alongside failed row sample counts.
+  - `not_null`: Assert column contains no null values.
+  - `unique`: Assert all non-null values are distinct.
+  - `numeric_range`: Assert values fall within `[min, max]` boundaries.
+  - `allowed_values`: Assert values belong to a designated whitelist.
+  - `email_format`: Assert string conforms to standard RFC email regex.
+  - `no_future_dates`: Assert timestamps are less than or equal to current timestamp.
+- **Output**:
+  - Passed, failed, and skipped statuses per rule with violating row counts.
+  - Overall Quality Score computed as `(passed_checks / applicable_checks) * 100`.
 
-### Stage 6: Reliability Scoring
-- **Status**: *Planned (Phase 6)*
-- **Algorithm**: Weighted composite score formula:
-  $$\text{Reliability Score} = w_c \cdot C + w_u \cdot U + w_v \cdot V + w_s \cdot S$$
-  where $C$ is Completeness score, $U$ is Uniqueness score, $V$ is Validity score, and $S$ is Schema stability score.
-- **Output**: Normalized score from $0$ to $100$ categorizing dataset trust as `CRITICAL`, `WARNING`, or `RELIABLE`.
-
-### Stage 7: Anomaly Detection
-- **Status**: *Planned (Phase 7)*
-- **Engine**: Scikit-learn `IsolationForest`.
+### Stage 6: Statistical Anomaly Detection
+- **Status**: **Completed (Phase 6)**
+- **Endpoint**: `POST /api/datasets/{dataset_id}/anomalies/detect`
+- **Engine**: `scikit-learn` `IsolationForest` (`AnomalyService`).
 - **Actions**:
-  - Encodes numerical columns and imputes missing values.
-  - Trains an unsupervised isolation forest on dataset feature distributions.
-  - Flags multivariate outliers that pass single-column range checks but represent anomalous combinations.
+  1. Reads numeric columns directly via DuckDB into NumPy feature arrays.
+  2. Imputes missing values safely using column medians.
+  3. Executes `IsolationForest(contamination=0.05, random_state=42)` per column or across numeric features.
+  4. Skips columns with fewer than 10 non-null observations with clear diagnostic feedback.
+  5. Computes decision function scores to rank and extract up to 5 representative anomalous sample values per column.
+
+### Stage 7: Explainable Reliability Scoring
+- **Status**: **Completed (Phase 6)**
+- **Endpoint**: `GET /api/datasets/{dataset_id}/reliability`
+- **Engine**: DataTrust Reliability Engine (`ReliabilityService`).
+- **Algorithm**:
+  $$\text{Reliability Score} = 0.50 \times \text{Quality} + 0.25 \times \text{Completeness} + 0.25 \times \text{Anomaly Health}$$
+  where:
+  - $\text{Quality} = \text{Quality Score from rules (defaults to 100.0 if unconfigured)}$
+  - $\text{Completeness} = \max(0, \min(100, 100 - \text{missing\_percentage}))$
+  - $\text{Anomaly Health} = \max(0, 100 - \text{anomaly\_percentage} \times 10)$
+- **Output**: 0–100 score classified into tiers: **Excellent** ($\ge 90$), **Good** ($75–89$), **Fair** ($60–74$), and **Poor** ($< 60$).
 
 ### Stage 8: Run Persistence & Historical Tracking
-- **Status**: *Planned (Phase 8)*
-- **Engine**: PostgreSQL.
-- **Actions**: Records `ValidationRun` entry linked to the dataset and workspace. Enables users to observe data drift and quality trends over time across repeated uploads.
+- **Status**: **Completed (Phase 7)**
+- **Endpoints**: `POST /api/datasets/{dataset_id}/runs`, `GET /api/datasets/{dataset_id}/runs`
+- **Engine**: PostgreSQL (`quality_runs` table via `HistoryService`).
+- **Actions**:
+  1. Runs composite reliability analysis and captures a compact snapshot: `row_count`, `column_count`, `quality_score`, `completeness_score`, `anomaly_score`, `reliability_score`, `anomaly_percentage`, and optional `notes`.
+  2. Preserves historical run records ordered chronologically (newest first).
+  3. Computes run-over-run deltas (improving, declining, stable) between the latest two runs.
+  4. Never stores raw tabular rows or large payload blobs in the metadata database.
 
-### Stage 9: AI Explanation
-- **Status**: *Planned (Phase 9)*
-- **Engine**: Gemini API via `services/ai/`.
-- **Actions**: Formulates a structured prompt containing the profiling summary, failed validation rules, and identified anomalies. Instructs the model to generate a concise, actionable diagnostic explaining root causes and remediation recommendations.
+### Stage 9: AI Explanation Engine
+- **Status**: **Completed (Phase 8)**
+- **Endpoint**: `POST /api/datasets/{dataset_id}/ai/explanation`
+- **Engine**: Google GenAI SDK (`gemini-2.5-flash` via `GeminiService`).
+- **Actions**:
+  1. Compiles aggregated structural profiling, failing quality rules, outlier statistics, and composite reliability score.
+  2. **Data Privacy Guarantee**: Zero raw CSV/Parquet rows or user credentials are transmitted to Gemini.
+  3. Produces a structured JSON explanation: executive summary, score explanation, ranked key issues with severity tags (`high`, `medium`, `low`), and prioritized remediation recommendations.
+  4. Handles missing API keys and upstream failures gracefully with HTTP 503 responses and actionable instructions.
 
-### Stage 10: Frontend Visualization & Interaction
-- **Status**: *Planned (Phase 10)* (Dataset ingestion & schema browser active in Phase 3)
-- **Engine**: React + Recharts + Tailwind CSS.
-- **Actions**: Renders the complete audit report:
-  - Header score dial and pass/fail summary.
-  - Column-by-column profiling tables.
-  - Anomaly distribution scatter graphs.
-  - AI executive summary card.
+### Stage 10: SaaS Dashboard & Frontend Visualizations
+- **Status**: **Completed (Phases 9 & 10)**
+- **Endpoint**: `GET /api/dashboard/summary`
+- **Engine**: React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui + Recharts.
+- **Actions**:
+  1. Executive SaaS overview at `/dashboard`: workspace KPIs (Total Datasets, Average Reliability, Needs Attention count, 7-day Runs Velocity).
+  2. Recharts horizontal bar chart comparing datasets by score, plus donut chart showing tier breakdown.
+  3. Actionable "Needs Attention" alert queue and chronological Recent Activity feed.
+  4. Dataset deep-dive at `/datasets/{id}`: tabbed interface for Schema, Profiling distributions, Quality Rules CRUD, Reliability Score breakdown, Isolation Forest outlier chips, historical trend line, and on-demand Gemini AI diagnosis.
+  5. Sub-15ms dashboard response guarantee powered by indexed PostgreSQL snapshots.

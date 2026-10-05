@@ -24,14 +24,20 @@ services:
     container_name: datatrust-backend
     restart: unless-stopped
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    env_file:
+      - path: ./.env
+        required: false
+      - path: ./backend/.env
+        required: false
     environment:
-      DATABASE_URL: postgresql://datatrust_user:datatrust_password@postgres:5432/datatrust_db
-      ENVIRONMENT: development
-      PROJECT_NAME: "DataTrust API"
-      JWT_SECRET_KEY: "datatrust-dev-secret-key-change-in-production-min-32-chars"
+      DATABASE_URL: ${DATABASE_URL:-postgresql://datatrust_user:datatrust_password@postgres:5432/datatrust_db}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      PROJECT_NAME: "${PROJECT_NAME:-DataTrust API}"
+      JWT_SECRET_KEY: "${JWT_SECRET_KEY:-datatrust-dev-secret-key-change-in-production-min-32-chars}"
       UPLOAD_DIR: "/app/data/uploads"
       GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
       GEMINI_MODEL: "${GEMINI_MODEL:-gemini-2.5-flash}"
+      CORS_ORIGINS: "${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173}"
     ports:
       - "8000:8000"
     volumes:
@@ -45,13 +51,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_URL: http://localhost:8000
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
     container_name: datatrust-frontend
     restart: unless-stopped
     ports:
       - "3000:80"
     environment:
-      VITE_API_URL: http://localhost:8000
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
     depends_on:
       - backend
 
