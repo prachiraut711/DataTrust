@@ -116,6 +116,26 @@ The system follows a clean modular monolithic architecture designed for clear se
               ▼
         Historical Trends
   ```
+- **AI-Powered Quality Explanation Architecture Flow (Phase 8)**:
+  ```
+  Dataset
+     ├── Profiling (Missing values, row/col counts, column statistics)
+     ├── Quality Rules (Passed & failed assertions, failure rates)
+     ├── Anomaly Detection (Isolation Forest outliers, anomalous columns)
+     ├── Reliability Score (Composite score & 3 component weights)
+     └── History Runs (Trend delta & previous snapshot)
+               │
+               ▼
+        Structured Summary Payload (JSON)
+        [STRICT PRIVACY: Zero raw dataset rows transmitted]
+               │
+               ▼
+        Google Gemini API (gemini-2.5-flash)
+               │
+               ▼
+        AIQualityExplanation
+        (Executive summary, root cause explanations, key issues with severity, actionable remediation)
+  ```
 - **Explainable Reliability Score Formula**:
   $$\text{Reliability Score} = 0.50 \times \text{Quality} + 0.25 \times \text{Completeness} + 0.25 \times \text{Anomaly Health}$$
   where:
@@ -130,8 +150,8 @@ The system follows a clean modular monolithic architecture designed for clear se
   - `anomaly/`: Scikit-learn `IsolationForest` statistical outlier detection on numeric columns (Phase 6).
   - `reliability/`: Composite 3-pillar data reliability calculation engine (Phase 6).
   - `history/`: Persistent summary metric snapshots and trend time-series (`history_service.py`) (Phase 7).
-  - `analytics/`: Multi-column interactive analytics and dataset comparison tools (Phase 8).
-  - `ai/`: Gemini API integration explaining detected anomalies in plain language (Phase 9).
+  - `ai/`: Gemini API integration explaining data quality, anomalies, and reliability in plain language (`gemini_service.py`) (Phase 8).
+  - `analytics/`: Multi-column interactive analytics and dataset comparison tools (Phase 9).
 
 ---
 

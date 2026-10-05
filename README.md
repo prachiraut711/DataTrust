@@ -8,17 +8,35 @@ DataTrust is an incremental SaaS platform designed to determine whether CSV and 
 
 ## Project Status
 
-**Phase 7 — Historical Quality & Reliability Tracking: Completed**
+**Phase 8 — AI-Powered Data Quality Explanation: Completed**
 
-DataTrust now supports capturing, tracking, and visualizing dataset quality snapshots over time:
+DataTrust integrates official Google Gemini 2.5 Flash as an intelligent explanation layer, converting multi-engine analytical indicators into clear, executive plain-language diagnostics:
 
-- **Historical Run Model & Persistence**: PostgreSQL `quality_runs` table (Alembic migration `005_create_quality_runs`) storing compact summary metric snapshots (`row_count`, `column_count`, `quality_score`, `completeness_score`, `anomaly_score`, `reliability_score`, `anomaly_percentage`, `notes`, `created_at`) without duplicating raw data.
-- **Reliability Trend Visualization**: Recharts time-series line chart plotting reliability score evolution over time with informative empty states and single-run baseline indicators.
-- **Automated Trend Interpretation**: Real-time delta comparison between consecutive runs highlighting improving, declining, or stable dataset reliability.
-- **Run History Catalog**: Chronological history table showing previous runs, metric breakdowns, and current run badges.
-- **Single Source of Truth**: `HistoryService` orchestrates execution by reusing `ReliabilityService` without duplicating formulas or anomaly detection logic.
+- **Intelligent Synthesis**: Translates data completeness ratios, failing rule assertions, and Isolation Forest outliers into plain-language summaries answering *what is wrong with this dataset* and *why the reliability score is at its current level*.
+- **Strict Data Privacy**: Never sends raw dataset rows, cell contents, or user credentials to Gemini. Only aggregated statistical summaries and validation metrics are transmitted.
+- **Prioritized Key Issues**: Generates ranked issues classified by severity (`high`, `medium`, `low`) with concrete impact explanations.
+- **Actionable Remediation**: Produces concrete, prioritized recommendations for data engineers and ML practitioners.
+- **Interactive UI**: On-demand "Explain Analysis" button with animated loading state, clear configuration/error guidance, and transparent trust & safety disclaimers.
 
 See [PROJECT_STATUS.md](file:///D:/prachi/Antigravity-Projects\DataTrust\PROJECT_STATUS.md) for current progress and upcoming phase milestones.
+
+---
+
+## AI-Powered Quality & Reliability Explanation
+
+DataTrust pairs strict deterministic metrics with Google Gemini generative intelligence:
+
+1. **Executive Plain-Language Summary**:
+   - High-level assessment of dataset structural health, completeness, and suitability for ML/analytics.
+2. **Reliability Score Decomposition**:
+   - Plain-language walkthrough explaining how the 50% Quality, 25% Completeness, and 25% Anomaly Health components contributed to the final score.
+3. **Prioritized Issue Detection**:
+   - Badged severity indicators (`High Severity`, `Medium Severity`, `Low Severity`) explaining the root cause and downstream operational impact.
+4. **Actionable Remediation Roadmap**:
+   - Step-by-step guidance on how to fix failing assertions, handle outliers, and sanitize data pipelines.
+5. **Architectural Guardrails**:
+   - Zero raw row transmission guarantee.
+   - Graceful 503 error handling when `GEMINI_API_KEY` is unconfigured or AI service is unreachable.
 
 ---
 

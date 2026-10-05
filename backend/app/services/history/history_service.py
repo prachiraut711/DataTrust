@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import List, Optional
 import uuid
 from fastapi import HTTPException, status
@@ -59,6 +60,7 @@ class HistoryService:
             reliability_score=rel_result.reliability_score,
             anomaly_percentage=rel_result.components.anomaly_health.anomaly_percentage,
             notes=notes.strip() if notes else None,
+            created_at=datetime.now(timezone.utc),
         )
 
         db.add(run)
@@ -78,7 +80,7 @@ class HistoryService:
         stmt = (
             select(QualityRun)
             .where(QualityRun.dataset_id == dataset.id)
-            .order_by(QualityRun.created_at.desc())
+            .order_by(QualityRun.created_at.desc(), QualityRun.id.desc())
             .limit(limit)
         )
         return list(db.execute(stmt).scalars().all())

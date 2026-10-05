@@ -29,6 +29,8 @@ services:
       PROJECT_NAME: "DataTrust API"
       JWT_SECRET_KEY: "datatrust-dev-secret-key-change-in-production-min-32-chars"
       UPLOAD_DIR: "/app/data/uploads"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      GEMINI_MODEL: "${GEMINI_MODEL:-gemini-2.5-flash}"
     ports:
       - "8000:8000"
     volumes:

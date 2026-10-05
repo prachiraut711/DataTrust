@@ -1,1 +1,3 @@
-"""AI explanation service package (Gemini API integration)."""
+from app.services.ai.gemini_service import gemini_service
+
+__all__ = ["gemini_service"]

@@ -10,6 +10,7 @@ import type {
 import type { AnomalyDetectionResponse } from "@/types/anomaly";
 import type { ReliabilityScoreResponse } from "@/types/reliability";
 import type { QualityRun } from "@/types/qualityRun";
+import type { AIQualityExplanation } from "@/types/ai";
 
 
 export interface HealthResponse {
@@ -320,6 +321,23 @@ export async function getQualityRunApi(
     }
   );
   return handleResponse<QualityRun>(response);
+}
+
+export async function getAIQualityExplanationApi(
+  token: string,
+  datasetId: string
+): Promise<AIQualityExplanation> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/datasets/${datasetId}/ai/explanation`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    }
+  );
+  return handleResponse<AIQualityExplanation>(response);
 }
 
 

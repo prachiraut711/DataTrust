@@ -42,6 +42,7 @@ import { ReliabilityOverview } from "@/components/reliability/ReliabilityOvervie
 import { AnomalyDetectionSection } from "@/components/anomaly/AnomalyDetectionSection";
 import { ReliabilityTrendChart } from "@/components/history/ReliabilityTrendChart";
 import { QualityRunHistory } from "@/components/history/QualityRunHistory";
+import { AIQualityExplanation } from "@/components/ai/AIQualityExplanation";
 
 export function DatasetDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -242,7 +243,7 @@ export function DatasetDetailPage() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Phase 7: Historical Tracking Active
+              Phase 8: AI Explanation Active
             </span>
           </div>
         </div>
@@ -517,6 +518,15 @@ export function DatasetDetailPage() {
             onRunCreated={fetchQualityRuns}
           />
 
+          {/* AI-Powered Quality & Reliability Explanation */}
+          <div className="border-t pt-8">
+            <AIQualityExplanation
+              token={token}
+              datasetId={id!}
+              datasetName={dataset.name}
+            />
+          </div>
+
           {/* Historical Reliability Trend Line Chart */}
           <div className="border-t pt-8">
             <ReliabilityTrendChart runs={runs} />
@@ -547,12 +557,12 @@ export function DatasetDetailPage() {
             Upcoming Analytical Stages
           </div>
           <CardTitle className="text-sm font-semibold">
-            Interactive Analytics & AI Explanation Pipeline
+            Interactive Analytics & Production Hardening
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-1 space-y-2">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Phases 1–7 are now fully active (Authentication, Ingestion, Profiling, Quality Rules Engine, Reliability Score, Isolation Forest Outliers, and Historical Quality Tracking). Subsequent phases will introduce multi-column interactive analytics (Phase 8) and Gemini AI explanation (Phase 9).
+            Phases 1–8 are now fully active (Authentication, Ingestion, Profiling, Quality Rules Engine, Reliability Score, Isolation Forest Outliers, Historical Quality Tracking, and Gemini AI Explanation). Subsequent phases will introduce multi-column interactive analytics and automated export reporting.
           </p>
         </CardContent>
       </Card>

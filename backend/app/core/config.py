@@ -1,6 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     )
     MAX_UPLOAD_SIZE_MB: int = 50
     ALLOWED_EXTENSIONS: List[str] = [".csv", ".parquet"]
+
+    # Google Gemini AI Settings
+    GEMINI_API_KEY: Optional[str] = None
+    GEMINI_MODEL: str = "gemini-2.5-flash"
 
     # Allowed CORS Origins
     CORS_ORIGINS: List[str] = [
