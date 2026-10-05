@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: datatrust-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: datatrust_user
+      POSTGRES_PASSWORD: datatrust_password
+      POSTGRES_DB: datatrust_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U datatrust_user -d datatrust_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: datatrust-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://datatrust_user:datatrust_password@postgres:5432/datatrust_db
+      ENVIRONMENT: development
+      PROJECT_NAME: "DataTrust API"
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: datatrust-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+    driver: local
