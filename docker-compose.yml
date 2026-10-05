@@ -28,8 +28,11 @@ services:
       ENVIRONMENT: development
       PROJECT_NAME: "DataTrust API"
       JWT_SECRET_KEY: "datatrust-dev-secret-key-change-in-production-min-32-chars"
+      UPLOAD_DIR: "/app/data/uploads"
     ports:
       - "8000:8000"
+    volumes:
+      - ./data/uploads:/app/data/uploads
     depends_on:
       postgres:
         condition: service_healthy

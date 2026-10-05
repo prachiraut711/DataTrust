@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   FileSpreadsheet,
   Cpu,
@@ -52,8 +53,8 @@ export function DashboardPage() {
     {
       title: "Uploaded Datasets",
       icon: FileSpreadsheet,
-      status: "Awaiting Phase 3",
-      detail: "CSV and Parquet file upload with local/S3-compatible storage abstraction.",
+      status: "Operational",
+      detail: "CSV and Parquet file upload with local storage and DuckDB column profiling.",
     },
     {
       title: "DuckDB Profiling",
@@ -93,15 +94,21 @@ export function DashboardPage() {
               Platform Dashboard
             </h1>
             <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-              Phase 2 Active
+              Phase 3 Ingestion Active
             </span>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Authenticated workspace session, health metrics, and pipeline readiness.
+            Authenticated workspace session, dataset ingestion, and health metrics.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          <Link to="/datasets">
+            <Button size="sm" className="gap-2">
+              <FileSpreadsheet className="h-4 w-4" />
+              Manage Datasets
+            </Button>
+          </Link>
           <Button
             variant="outline"
             size="sm"

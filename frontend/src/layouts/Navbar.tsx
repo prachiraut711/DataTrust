@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { ShieldCheck, Activity, BarChart2, LogOut, User as UserIcon, Layers } from "lucide-react";
+import { ShieldCheck, Activity, BarChart2, LogOut, User as UserIcon, Layers, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 
@@ -43,15 +43,28 @@ export function Navbar() {
               Overview
             </Link>
             {isAuthenticated && (
-              <Link
-                to="/dashboard"
-                className={`flex items-center gap-1.5 transition-colors hover:text-foreground ${
-                  isCurrent("/dashboard") ? "text-foreground font-semibold" : "text-muted-foreground"
-                }`}
-              >
-                <BarChart2 className="h-4 w-4" />
-                Dashboard
-              </Link>
+              <>
+                <Link
+                  to="/dashboard"
+                  className={`flex items-center gap-1.5 transition-colors hover:text-foreground ${
+                    isCurrent("/dashboard") ? "text-foreground font-semibold" : "text-muted-foreground"
+                  }`}
+                >
+                  <BarChart2 className="h-4 w-4" />
+                  Dashboard
+                </Link>
+                <Link
+                  to="/datasets"
+                  className={`flex items-center gap-1.5 transition-colors hover:text-foreground ${
+                    isCurrent("/datasets") || location.pathname.startsWith("/datasets")
+                      ? "text-foreground font-semibold"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  <FileSpreadsheet className="h-4 w-4" />
+                  Datasets
+                </Link>
+              </>
             )}
           </nav>
         </div>

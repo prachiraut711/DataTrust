@@ -31,3 +31,9 @@ class Workspace(Base):
 
     # Relationships
     owner = relationship("User", back_populates="workspaces")
+    datasets = relationship(
+        "Dataset",
+        back_populates="workspace",
+        cascade="all, delete-orphan",
+        order_by="Dataset.uploaded_at.desc()",
+    )

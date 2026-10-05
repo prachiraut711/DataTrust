@@ -6,6 +6,8 @@ import { HomePage } from "@/pages/HomePage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { DatasetsPage } from "@/pages/DatasetsPage";
+import { DatasetDetailPage } from "@/pages/DatasetDetailPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 export default function App() {
@@ -21,6 +23,8 @@ export default function App() {
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/datasets" element={<DatasetsPage />} />
+              <Route path="/datasets/:id" element={<DatasetDetailPage />} />
             </Route>
 
             <Route path="*" element={<NotFoundPage />} />

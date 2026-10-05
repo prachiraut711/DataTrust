@@ -8,14 +8,14 @@ DataTrust is an incremental SaaS platform designed to determine whether CSV and 
 
 ## Project Status
 
-**Phase 2 — Database Models & Authentication: Completed**
+**Phase 3 — Dataset Ingestion & DuckDB Inspection: Completed**
 
-The architectural foundation, PostgreSQL metadata models (Users and Workspaces), Alembic migrations, bcrypt password security, JWT session authentication, protected frontend dashboard routing, and comprehensive test suite are fully operational and verified.
+The dataset ingestion pipeline, local storage abstraction, in-process DuckDB analytical inspection, Dataset & DatasetColumn metadata models, Alembic migrations, dataset management screen, and schema viewer are fully operational and verified.
 
-- **PostgreSQL Metadata Foundation**: Implemented via SQLAlchemy 2.0 with UUID keys and Alembic versioning.
-- **User Authentication**: Implemented via `POST /api/auth/register`, `POST /api/auth/login`, and `GET /api/auth/me`.
-- **Workspace Creation**: Implemented with automatic default workspace provisioning for every registered user.
-- **Frontend Session Management**: Implemented with React `AuthContext`, session hydration, and `ProtectedRoute` guard.
+- **Dataset Ingestion & Validation**: Multi-part upload supporting `.csv` and `.parquet` files with configurable 50 MB limits, sanitized UUID filenames, and path traversal protection.
+- **DuckDB In-Process Analytical Engine**: In-memory schema inference and vectorized calculation of null counts, null percentages, and distinct counts directly over raw disk files without database bloat.
+- **PostgreSQL Metadata Persistence**: Versioned via Alembic migrations (`001_initial` $\rightarrow$ `002_create_datasets` $\rightarrow$ `003_create_dataset_columns`).
+- **Frontend Dataset Interface**: Responsive `/datasets` dashboard, drag-and-drop ingestion modal, and `/datasets/:id` column schema table.
 
 See [PROJECT_STATUS.md](file:///D:/prachi/Antigravity-Projects/DataTrust/PROJECT_STATUS.md) for current progress and upcoming phase milestones.
 
@@ -38,8 +38,8 @@ DataTrust delivers a clean, high-performance, developer-friendly reliability eng
 ### Features & Implementation Roadmap
 
 - **User Authentication & Workspaces** *(Completed - Phase 2)*: Email/password authentication, bcrypt hashing, stateless JWTs, and automatic workspace creation.
-- **Multi-Format Ingestion** *(Planned - Phase 3)*: Drag-and-drop upload for CSV and Parquet datasets with structural validation.
-- **Analytical Profiling** *(Planned - Phase 4)*: Rapid column profiling, type discovery, null distributions, and quantiles powered by DuckDB.
+- **Dataset Ingestion & DuckDB Inspection** *(Completed - Phase 3)*: Upload CSV/Parquet, sanitized storage, DuckDB vectorized profiling (rows, types, nulls, distincts), and schema browser.
+- **Advanced Statistical Profiling** *(Planned - Phase 4)*: In-process calculation of quantiles (25th/50th/75th), min, max, mean, standard deviation, and categorical frequencies.
 - **Data Quality Engine** *(Planned - Phase 5)*: Configurable declarative assertions (completeness, uniqueness, range boundaries, regex patterns).
 - **DataTrust Reliability Score** *(Planned - Phase 6)*: An objective 0–100 weighted index communicating operational readiness for machine learning.
 - **Unsupervised Anomaly Detection** *(Planned - Phase 7)*: Isolation Forest outlier scoring on multivariate distributions.
@@ -69,7 +69,7 @@ DataTrust is structured as a modular monolith with clear separation between appl
 ┌───────────────────────────┐ ┌───────────────────────────┐
 │     Metadata Database     │ │   Analytical Engine       │
 │        PostgreSQL         │ │     Embedded DuckDB       │
-│  (Users, Workspaces, DDL) │ │   (Direct Parquet/CSV)    │
+│  (Users, Datasets, DDL)   │ │   (Direct Parquet/CSV)    │
 └───────────────────────────┘ └───────────────────────────┘
 ```
 
@@ -94,13 +94,13 @@ For an in-depth breakdown of database separation, schema models, and data lifecy
 - **Framework**: FastAPI
 - **Language**: Python 3.12
 - **Validation**: Pydantic v2 & Pydantic Settings
+- **Analytical Processing**: DuckDB (in-process columnar engine)
 - **ORM / Persistence**: SQLAlchemy 2.0 with PostgreSQL drivers (`psycopg` & `psycopg2-binary`)
 - **Database Migrations**: Alembic
 - **Security & Authentication**: `bcrypt` (salted password hashing), `PyJWT` (stateless tokens)
-- **Testing**: Pytest & HTTPX TestClient
+- **Testing**: Pytest & HTTPX TestClient (20 automated tests)
 
 ### Data & Machine Learning (Planned Phases)
-- **Analytical Engine**: DuckDB (in-process columnar execution)
 - **Data Manipulation**: Pandas, NumPy
 - **Machine Learning**: Scikit-learn (`IsolationForest` for anomaly detection)
 - **AI Explanation**: Google Gemini API
@@ -121,30 +121,37 @@ DataTrust/
 │       └── ci.yml               # Automated CI pipeline (Backend tests + Frontend build)
 ├── backend/
 │   ├── alembic/                 # Alembic migration management
-│   │   ├── versions/            # Migration revisions (001_create_users_and_workspaces)
+│   │   ├── versions/            # 001_initial, 002_create_datasets, 003_create_dataset_columns
 │   │   └── env.py               # Dynamic database URL configuration
 │   ├── app/
 │   │   ├── api/                 # API routers and endpoints
 │   │   │   ├── auth.py          # Register, Login, Me endpoints
+│   │   │   ├── datasets.py      # Upload, List, Details, Delete endpoints
 │   │   │   ├── deps.py          # FastAPI auth and db dependencies
 │   │   │   └── router.py        # Central API router
 │   │   ├── core/                # Centralized settings and security
-│   │   │   ├── config.py        # Pydantic BaseSettings
+│   │   │   ├── config.py        # Pydantic BaseSettings & upload config
 │   │   │   └── security.py      # Bcrypt hashing & JWT utilities
 │   │   ├── database/            # SQLAlchemy session and engine
 │   │   ├── models/              # Database ORM models
 │   │   │   ├── user.py          # User model (UUID, email, password_hash)
-│   │   │   └── workspace.py     # Workspace model (UUID, name, owner_id)
+│   │   │   ├── workspace.py     # Workspace model (UUID, name, owner_id)
+│   │   │   ├── dataset.py       # Dataset model (UUID, filename, format, size, rows)
+│   │   │   └── dataset_column.py# DatasetColumn model (types, nulls, distincts)
 │   │   ├── schemas/             # Pydantic validation schemas
 │   │   │   ├── auth.py          # UserRegister, UserLogin, TokenResponse
+│   │   │   ├── dataset.py       # DatasetResponse, DatasetDetailResponse
 │   │   │   ├── health.py        # HealthCheckResponse
 │   │   │   ├── user.py          # UserResponse
 │   │   │   └── workspace.py     # WorkspaceResponse
-│   │   ├── services/            # Modular domain services (profiling, quality, etc.)
+│   │   ├── services/            # Modular domain services
+│   │   │   ├── datasets/        # Dataset orchestration & DuckDB inspection
+│   │   │   └── storage/         # Local filesystem storage abstraction
 │   │   └── main.py              # FastAPI application entrypoint
-│   ├── tests/                   # Pytest test suite (10 unit/integration tests)
+│   ├── tests/                   # Pytest test suite (20 unit/integration tests)
 │   │   ├── conftest.py          # In-memory SQLite fixtures & client overrides
 │   │   ├── test_auth.py         # Authentication test cases
+│   │   ├── test_datasets.py     # Dataset upload, DuckDB inspection, & security tests
 │   │   └── test_health.py       # Health and root endpoint tests
 │   ├── .env.example             # Backend environment template
 │   ├── Dockerfile               # Backend container image
@@ -152,11 +159,13 @@ DataTrust/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/ui/       # UI primitive components (Button, Card, ProtectedRoute)
+│   │   ├── components/          # UploadDatasetDialog modal
 │   │   ├── context/             # AuthContext provider and useAuth hook
 │   │   ├── layouts/             # Navbar and RootLayout
-│   │   ├── pages/               # HomePage, LoginPage, RegisterPage, DashboardPage
-│   │   ├── services/            # API client (register, login, me, health)
-│   │   ├── types/               # TypeScript interfaces (User, Workspace, AuthResponse)
+│   │   ├── pages/               # HomePage, LoginPage, RegisterPage, DashboardPage,
+│   │   │                        # DatasetsPage, DatasetDetailPage
+│   │   ├── services/            # API client (auth, datasets, health)
+│   │   ├── types/               # TypeScript interfaces (User, Dataset, Column)
 │   │   ├── App.tsx              # Application route definitions
 │   │   └── main.tsx             # React DOM entrypoint
 │   ├── .env.example             # Frontend environment template
@@ -165,7 +174,8 @@ DataTrust/
 │   ├── tailwind.config.js       # Tailwind CSS configuration
 │   └── vite.config.ts           # Vite configuration
 ├── data/
-│   └── sample/                  # Safe sample datasets for testing
+│   ├── sample/                  # Safe sample datasets (orders_sample.csv)
+│   └── uploads/                 # Local directory for uploaded files (.gitignore protected)
 ├── docs/
 │   ├── ARCHITECTURE.md          # Technical architecture overview & schema models
 │   └── DATA_FLOW.md             # End-to-end dataset lifecycle documentation
@@ -216,7 +226,8 @@ uvicorn app.main:app --reload --port 8000
 The API will be accessible at:
 - Root: `http://localhost:8000/`
 - Health: `http://localhost:8000/api/health`
-- Auth Endpoints: `http://localhost:8000/api/auth/register`, `http://localhost:8000/api/auth/login`, `http://localhost:8000/api/auth/me`
+- Auth Endpoints: `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`
+- Dataset Endpoints: `POST /api/datasets`, `GET /api/datasets`, `GET /api/datasets/{id}`, `DELETE /api/datasets/{id}`
 - Swagger Docs: `http://localhost:8000/docs`
 
 ### 2. Frontend Setup
@@ -237,13 +248,13 @@ npm run dev
 
 The web application will be accessible at:
 - Web UI: `http://localhost:5173`
-- Unauthenticated access to `/dashboard` redirects to `/login`.
+- Unauthenticated access to `/dashboard` or `/datasets` redirects to `/login`.
 
 ---
 
 ## Docker Setup
 
-To run the entire stack (PostgreSQL, Backend API, and Frontend) locally via Docker Compose:
+To run the entire stack (PostgreSQL, Backend API with DuckDB, and Frontend) locally via Docker Compose:
 
 ```bash
 # From the project root

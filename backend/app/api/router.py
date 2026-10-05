@@ -1,11 +1,13 @@
 from fastapi import APIRouter
 from app.api.auth import router as auth_router
+from app.api.datasets import router as datasets_router
 from app.schemas.health import HealthCheckResponse
 
 api_router = APIRouter()
 
-# Include authentication endpoints
+# Include feature endpoints
 api_router.include_router(auth_router)
+api_router.include_router(datasets_router)
 
 
 @api_router.get(

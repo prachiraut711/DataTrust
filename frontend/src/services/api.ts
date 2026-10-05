@@ -1,4 +1,5 @@
 import type { AuthResponse, User } from "@/types/auth";
+import type { Dataset, DatasetDetail } from "@/types/dataset";
 
 export interface HealthResponse {
   status: string;
@@ -78,4 +79,51 @@ export async function getMeApi(token: string): Promise<User> {
     },
   });
   return handleResponse<User>(response);
+}
+
+export async function getDatasetsApi(token: string): Promise<Dataset[]> {
+  const response = await fetch(`${API_BASE_URL}/api/datasets`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+  return handleResponse<Dataset[]>(response);
+}
+
+export async function getDatasetDetailApi(token: string, id: string): Promise<DatasetDetail> {
+  const response = await fetch(`${API_BASE_URL}/api/datasets/${id}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+  return handleResponse<DatasetDetail>(response);
+}
+
+export async function uploadDatasetApi(token: string, formData: FormData): Promise<DatasetDetail> {
+  const response = await fetch(`${API_BASE_URL}/api/datasets`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+      // Let browser set multipart/form-data boundary automatically
+    },
+    body: formData,
+  });
+  return handleResponse<DatasetDetail>(response);
+}
+
+export async function deleteDatasetApi(
+  token: string,
+  id: string
+): Promise<{ status: string; message: string }> {
+  const response = await fetch(`${API_BASE_URL}/api/datasets/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+  return handleResponse<{ status: string; message: string }>(response);
 }
