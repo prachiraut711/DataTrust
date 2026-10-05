@@ -50,3 +50,9 @@ class Dataset(Base):
         cascade="all, delete-orphan",
         order_by="DatasetQualityRule.created_at",
     )
+    quality_runs = relationship(
+        "QualityRun",
+        back_populates="dataset",
+        cascade="all, delete-orphan",
+        order_by="QualityRun.created_at.desc()",
+    )

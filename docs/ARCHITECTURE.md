@@ -100,6 +100,22 @@ The system follows a clean modular monolithic architecture designed for clear se
                          ▼
                    DataTrust UI
   ```
+- **Historical Quality Tracking Architecture Flow (Phase 7)**:
+  ```
+  Dataset
+     │
+     ├── Profiling
+     ├── Quality Rules
+     ├── Anomaly Detection
+     │
+     └── Reliability Score
+              │
+              ▼
+        QualityRun Snapshot
+              │
+              ▼
+        Historical Trends
+  ```
 - **Explainable Reliability Score Formula**:
   $$\text{Reliability Score} = 0.50 \times \text{Quality} + 0.25 \times \text{Completeness} + 0.25 \times \text{Anomaly Health}$$
   where:
@@ -113,8 +129,9 @@ The system follows a clean modular monolithic architecture designed for clear se
   - `quality/`: Configurable validation rules, dynamic DuckDB execution, Quality Score, and issue identification (Phase 5).
   - `anomaly/`: Scikit-learn `IsolationForest` statistical outlier detection on numeric columns (Phase 6).
   - `reliability/`: Composite 3-pillar data reliability calculation engine (Phase 6).
-  - `analytics/`: Historical tracking and quality regression detection (Phase 7).
-  - `ai/`: Gemini API integration explaining detected anomalies in plain language (Phase 8).
+  - `history/`: Persistent summary metric snapshots and trend time-series (`history_service.py`) (Phase 7).
+  - `analytics/`: Multi-column interactive analytics and dataset comparison tools (Phase 8).
+  - `ai/`: Gemini API integration explaining detected anomalies in plain language (Phase 9).
 
 ---
 
@@ -163,23 +180,27 @@ The system follows a clean modular monolithic architecture designed for clear se
 │ column_count: INTEGER                │
 │ uploaded_at: TIMESTAMPTZ             │
 │ updated_at: TIMESTAMPTZ              │
-└──────────────────┬───────────────────┘
-                   │ 1
-                   │ has
-                   │ N
-                   ▼
-┌──────────────────────────────────────┐
-│           dataset_columns            │
-├──────────────────────────────────────┤
-│ id: UUID (PK)                        │
-│ dataset_id: UUID (FK -> ds.id, IDX)  │
-│ column_name: VARCHAR(255)            │
-│ data_type: VARCHAR(100)              │
-│ null_count: INTEGER                  │
-│ null_percentage: FLOAT               │
-│ distinct_count: INTEGER              │
-│ created_at: TIMESTAMPTZ              │
-└──────────────────────────────────────┘
+└──────────┬───────────────────┬───────┘
+           │ 1                 │ 1
+           │ has               │ tracks
+           │ N                 │ N
+           ▼                   ▼
+┌─────────────────────┐ ┌──────────────────────────────────────┐
+│   dataset_columns   │ │             quality_runs             │
+├─────────────────────┤ ├──────────────────────────────────────┤
+│ id: UUID (PK)       │ │ id: UUID (PK)                        │
+│ dataset_id: UUID(FK)│ │ dataset_id: UUID (FK -> ds.id, IDX)  │
+│ column_name: VARCHAR│ │ workspace_id: UUID (FK -> ws.id, IDX)│
+│ data_type: VARCHAR  │ │ row_count: INTEGER                   │
+│ null_count: INTEGER │ │ column_count: INTEGER                │
+│ null_pct: FLOAT     │ │ quality_score: FLOAT                 │
+│ distinct_cnt: INT   │ │ completeness_score: FLOAT            │
+│ created_at: TIMESTZ │ │ anomaly_score: FLOAT                 │
+└─────────────────────┘ │ reliability_score: FLOAT             │
+                        │ anomaly_percentage: FLOAT            │
+                        │ notes: TEXT (NULLABLE)               │
+                        │ created_at: TIMESTAMPTZ (INDEX)      │
+                        └──────────────────────────────────────┘
 ```
 
 ### 3.1 Design Principles

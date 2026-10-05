@@ -8,6 +8,8 @@ import {
   Database,
   Activity,
   Zap,
+  Sparkles,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,22 +18,26 @@ import {
   CardDescription,
   CardHeader,
 } from "@/components/ui/card";
-import { getReliabilityApi } from "@/services/api";
+import { getReliabilityApi, createQualityRunApi } from "@/services/api";
 import type { ReliabilityScoreResponse } from "@/types/reliability";
 
 interface ReliabilityOverviewProps {
   token: string;
   datasetId: string;
   datasetName: string;
+  onRunCreated?: () => void;
 }
 
 export function ReliabilityOverview({
   token,
   datasetId,
+  onRunCreated,
 }: ReliabilityOverviewProps) {
   const [reliability, setReliability] = useState<ReliabilityScoreResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [savingRun, setSavingRun] = useState<boolean>(false);
+  const [lastSavedMessage, setLastSavedMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchReliability = async (isManual = false) => {
@@ -50,6 +56,31 @@ export function ReliabilityOverview({
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleRunAnalysisAndSave = async () => {
+    setSavingRun(true);
+    setError(null);
+    setLastSavedMessage(null);
+    try {
+      await createQualityRunApi(token, datasetId);
+      const data = await getReliabilityApi(token, datasetId);
+      setReliability(data);
+      setLastSavedMessage(
+        `Snapshot saved at ${new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })}`
+      );
+      if (onRunCreated) {
+        onRunCreated();
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to record historical run.");
+    } finally {
+      setSavingRun(false);
     }
   };
 
@@ -164,16 +195,31 @@ export function ReliabilityOverview({
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              {lastSavedMessage && (
+                <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                  <CheckCircle className="h-3 w-3" />
+                  {lastSavedMessage}
+                </span>
+              )}
+              <Button
+                size="sm"
+                onClick={handleRunAnalysisAndSave}
+                disabled={savingRun || refreshing}
+                className="text-xs gap-1.5 font-semibold shadow-sm"
+              >
+                <Sparkles className={`h-3.5 w-3.5 ${savingRun ? "animate-spin" : ""}`} />
+                {savingRun ? "Analyzing & Saving..." : "Run Analysis & Save Snapshot"}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => fetchReliability(true)}
-                disabled={refreshing}
+                disabled={refreshing || savingRun}
                 className="text-xs gap-1.5"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-                {refreshing ? "Re-calculating..." : "Recalculate Reliability"}
+                {refreshing ? "Re-calculating..." : "Refresh Score"}
               </Button>
             </div>
           </div>

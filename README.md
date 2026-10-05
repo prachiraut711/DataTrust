@@ -8,18 +8,32 @@ DataTrust is an incremental SaaS platform designed to determine whether CSV and 
 
 ## Project Status
 
-**Phase 6 — Reliability Score + Statistical Anomaly Detection: Completed**
+**Phase 7 — Historical Quality & Reliability Tracking: Completed**
 
-The DataTrust composite reliability scoring system, scikit-learn Isolation Forest unsupervised outlier detection engine, per-column anomaly inspections with sample discovery, and interactive UI views are fully operational and verified.
+DataTrust now supports capturing, tracking, and visualizing dataset quality snapshots over time:
 
-- **Statistical Anomaly Detection Engine**: High-performance vectorized numerical outlier detection powered by scikit-learn's `IsolationForest` (`contamination=0.05`, `random_state=42`) querying DuckDB. Safely skips sparse columns (< 10 non-null values) and extracts top representative anomalous sample values.
-- **Explainable Reliability Score**: Composite 0–100 index combining three foundational pillars:
-  $$\text{Reliability Score} = 0.50 \times \text{Quality} + 0.25 \times \text{Completeness} + 0.25 \times \text{Anomaly Health}$$
-  where Completeness penalizes missing cells and Anomaly Health penalizes statistical outlier densities.
-- **Classification Tiers**: Intuitive operational readiness ratings: **Excellent** (90–100), **Good** (75–89), **Fair** (60–74), and **Poor** (0–59).
-- **Interactive Reliability & Anomalies UI**: Dedicated tab in Dataset Details displaying a circular score gauge, three component contribution cards with visual progress bars, contamination selector (1%–10%), and detailed column anomaly tables with sample outlier chips.
+- **Historical Run Model & Persistence**: PostgreSQL `quality_runs` table (Alembic migration `005_create_quality_runs`) storing compact summary metric snapshots (`row_count`, `column_count`, `quality_score`, `completeness_score`, `anomaly_score`, `reliability_score`, `anomaly_percentage`, `notes`, `created_at`) without duplicating raw data.
+- **Reliability Trend Visualization**: Recharts time-series line chart plotting reliability score evolution over time with informative empty states and single-run baseline indicators.
+- **Automated Trend Interpretation**: Real-time delta comparison between consecutive runs highlighting improving, declining, or stable dataset reliability.
+- **Run History Catalog**: Chronological history table showing previous runs, metric breakdowns, and current run badges.
+- **Single Source of Truth**: `HistoryService` orchestrates execution by reusing `ReliabilityService` without duplicating formulas or anomaly detection logic.
 
-See [PROJECT_STATUS.md](file:///D:/prachi/Antigravity-Projects/DataTrust/PROJECT_STATUS.md) for current progress and upcoming phase milestones.
+See [PROJECT_STATUS.md](file:///D:/prachi/Antigravity-Projects\DataTrust\PROJECT_STATUS.md) for current progress and upcoming phase milestones.
+
+---
+
+## Historical Quality & Reliability Tracking
+
+DataTrust allows data teams to monitor dataset health evolution across consecutive pipeline runs:
+
+1. **Summary Metric Snapshots**:
+   - Each analysis captures: total rows, total columns, quality score, completeness score, anomaly health score, composite reliability score, and outlier percentage.
+   - Preserves metadata without row-level overhead or database bloat.
+2. **Interactive Trend Charting**:
+   - Time-series line chart (0–100 Y-axis) mapping reliability trajectory across all historical audits.
+   - Hover tooltips detailing metric breakdowns per run.
+3. **Run-over-Run Delta Analysis**:
+   - Automated comparison between the latest two runs identifying whether reliability is improving, declining, or stable.
 
 ---
 
@@ -90,7 +104,7 @@ DataTrust delivers a clean, high-performance, developer-friendly reliability eng
 - **Advanced Statistical Profiling** *(Completed - Phase 4)*: In-process calculation of quantiles, min, max, mean, standard deviation, categorical frequencies, missing value distributions, and interactive Recharts visualizations.
 - **Data Quality Engine** *(Completed - Phase 5)*: Configurable declarative assertions (not null, unique, range boundaries, permitted sets, email regex, no future dates), dynamic DuckDB validation, Quality Score, and issues UI.
 - **Reliability Score & Anomaly Detection** *(Completed - Phase 6)*: Objective 0–100 composite index (50% Quality, 25% Completeness, 25% Anomaly Health) and scikit-learn Isolation Forest unsupervised outlier detection on numeric columns.
-- **Run-over-Run Quality Analytics** *(Planned - Phase 7)*: Historical tracking of dataset runs to identify quality regressions and data drift.
+- **Historical Quality & Reliability Tracking** *(Completed - Phase 7)*: Snapshot persistence (`quality_runs`), time-series Recharts reliability trend line, delta interpretation, and chronological run history.
 - **Advanced Analytics Dashboard** *(Planned - Phase 8)*: Multi-column distribution plots, correlation matrix, and dataset comparisons.
 - **AI Explanation Engine** *(Planned - Phase 9)*: Plain-language root cause diagnostics and remediation advice powered by the Gemini API.
 

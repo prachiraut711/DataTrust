@@ -9,6 +9,7 @@ import type {
 } from "@/types/quality";
 import type { AnomalyDetectionResponse } from "@/types/anomaly";
 import type { ReliabilityScoreResponse } from "@/types/reliability";
+import type { QualityRun } from "@/types/qualityRun";
 
 
 export interface HealthResponse {
@@ -266,6 +267,59 @@ export async function getReliabilityApi(
     }
   );
   return handleResponse<ReliabilityScoreResponse>(response);
+}
+
+export async function createQualityRunApi(
+  token: string,
+  datasetId: string,
+  notes?: string
+): Promise<QualityRun> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/datasets/${datasetId}/runs`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(notes ? { notes } : {}),
+    }
+  );
+  return handleResponse<QualityRun>(response);
+}
+
+export async function getQualityRunsApi(
+  token: string,
+  datasetId: string
+): Promise<QualityRun[]> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/datasets/${datasetId}/runs`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    }
+  );
+  return handleResponse<QualityRun[]>(response);
+}
+
+export async function getQualityRunApi(
+  token: string,
+  datasetId: string,
+  runId: string
+): Promise<QualityRun> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/datasets/${datasetId}/runs/${runId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    }
+  );
+  return handleResponse<QualityRun>(response);
 }
 
 

@@ -30,14 +30,18 @@ import {
   deleteDatasetApi,
   getDatasetDetailApi,
   getDatasetProfileApi,
+  getQualityRunsApi,
 } from "@/services/api";
 import type { DatasetDetail } from "@/types/dataset";
 import type { DatasetProfileResponse } from "@/types/profile";
+import type { QualityRun } from "@/types/qualityRun";
 import { MissingValuesChart } from "@/components/profiling/MissingValuesChart";
 import { ColumnProfileInspector } from "@/components/profiling/ColumnProfileInspector";
 import { QualityRulesSection } from "@/components/quality/QualityRulesSection";
 import { ReliabilityOverview } from "@/components/reliability/ReliabilityOverview";
 import { AnomalyDetectionSection } from "@/components/anomaly/AnomalyDetectionSection";
+import { ReliabilityTrendChart } from "@/components/history/ReliabilityTrendChart";
+import { QualityRunHistory } from "@/components/history/QualityRunHistory";
 
 export function DatasetDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -48,10 +52,21 @@ export function DatasetDetailPage() {
   const [profile, setProfile] = useState<DatasetProfileResponse | null>(null);
   const [selectedColumnName, setSelectedColumnName] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"profiling" | "quality" | "reliability">("profiling");
+  const [runs, setRuns] = useState<QualityRun[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<boolean>(false);
+
+  const fetchQualityRuns = async () => {
+    if (!token || !id) return;
+    try {
+      const runsData = await getQualityRunsApi(token, id);
+      setRuns(runsData);
+    } catch {
+      // Keep existing runs state on minor network error
+    }
+  };
 
   const fetchDatasetAndProfile = async (isManualRefresh: boolean = false) => {
     if (!token || !id) return;
@@ -63,14 +78,16 @@ export function DatasetDetailPage() {
     setError(null);
 
     try {
-      // Fetch both dataset metadata and detailed statistical profile in parallel
-      const [datasetData, profileData] = await Promise.all([
+      // Fetch dataset metadata, detailed statistical profile, and historical runs in parallel
+      const [datasetData, profileData, runsData] = await Promise.all([
         getDatasetDetailApi(token, id),
         getDatasetProfileApi(token, id),
+        getQualityRunsApi(token, id).catch(() => []),
       ]);
 
       setDataset(datasetData);
       setProfile(profileData);
+      setRuns(runsData);
 
       // Default select the first column if none selected
       if (!selectedColumnName && profileData.columns.length > 0) {
@@ -225,7 +242,7 @@ export function DatasetDetailPage() {
           <div className="flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Phase 6: Reliability & Anomaly Active
+              Phase 7: Historical Tracking Active
             </span>
           </div>
         </div>
@@ -490,14 +507,29 @@ export function DatasetDetailPage() {
         />
       )}
 
-      {/* Tab 3: Reliability Score & Anomaly Detection */}
+      {/* Tab 3: Reliability Score, Historical Trends, and Anomaly Detection */}
       {activeTab === "reliability" && token && dataset && (
-        <div className="space-y-10">
+        <div className="space-y-8">
           <ReliabilityOverview
             token={token}
             datasetId={id!}
             datasetName={dataset.name}
+            onRunCreated={fetchQualityRuns}
           />
+
+          {/* Historical Reliability Trend Line Chart */}
+          <div className="border-t pt-8">
+            <ReliabilityTrendChart runs={runs} />
+          </div>
+
+          {/* Historical Quality Runs Table */}
+          {runs.length > 0 && (
+            <div className="pt-2">
+              <QualityRunHistory runs={runs} />
+            </div>
+          )}
+
+          {/* Unsupervised Anomaly Detection Section */}
           <div className="border-t pt-8">
             <AnomalyDetectionSection
               token={token}
@@ -515,12 +547,12 @@ export function DatasetDetailPage() {
             Upcoming Analytical Stages
           </div>
           <CardTitle className="text-sm font-semibold">
-            Historical Trends, Advanced Analytics & AI Explanation Pipeline
+            Interactive Analytics & AI Explanation Pipeline
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4 pt-1 space-y-2">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Phase 4 (Profiling Engine), Phase 5 (Quality Rules Engine), and Phase 6 (Reliability Score & Isolation Forest Anomaly Detection) are now fully active. Subsequent phases will introduce historical run tracking and regression detection (Phase 7), advanced interactive dataset analytics (Phase 8), and Gemini AI explanation (Phase 9).
+            Phases 1–7 are now fully active (Authentication, Ingestion, Profiling, Quality Rules Engine, Reliability Score, Isolation Forest Outliers, and Historical Quality Tracking). Subsequent phases will introduce multi-column interactive analytics (Phase 8) and Gemini AI explanation (Phase 9).
           </p>
         </CardContent>
       </Card>

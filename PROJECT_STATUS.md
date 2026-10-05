@@ -1,6 +1,6 @@
 # DataTrust — Project Status
 
-Last Updated: Phase 6 Reliability Score & Statistical Anomaly Detection Completion
+Last Updated: Phase 7 Historical Quality & Reliability Tracking Completion
 
 ---
 
@@ -14,8 +14,8 @@ Last Updated: Phase 6 Reliability Score & Statistical Anomaly Detection Completi
 | **Phase 4** | **DuckDB Profiling Engine** | **Completed** | In-process analytical profiling: quantiles, min, max, mean, standard deviation, categorical frequencies, missing value distributions, Recharts visualizations, and interactive column inspector. |
 | **Phase 5** | **Quality Rules Engine** | **Completed** | Declarative quality rules (not_null, unique, numeric_range, allowed_values, email_format, no_future_dates), dynamic DuckDB validation, Quality Score, rule CRUD, and interactive issues UI. |
 | **Phase 6** | **Reliability Score & Anomaly Detection** | **Completed** | Isolation Forest statistical anomaly detection, explainable 0–100 Reliability Score (50% Quality, 25% Completeness, 25% Anomaly Health), per-column outlier samples, and interactive UI. |
-| **Phase 7** | **Historical Quality Tracking** | *Planned Next* | Run-over-run quality metrics, drift detection, and historical timeline regression. |
-| **Phase 8** | **Advanced Analytics Dashboard** | *Planned* | Interactive multi-column distribution plots, correlations, and dataset comparison tools. |
+| **Phase 7** | **Historical Quality Tracking** | **Completed** | Summary snapshot persistence (`quality_runs` table, migration `005_create_quality_runs`), Recharts reliability trend line, trend delta interpretation, and chronological run history. |
+| **Phase 8** | **Advanced Analytics Dashboard** | *Planned Next* | Interactive multi-column distribution plots, correlations, and dataset comparison tools. |
 | **Phase 9** | **AI Explanation Engine** | *Planned* | Gemini API integration providing natural language diagnostics on detected quality issues. |
 | **Phase 10** | **Production Dashboard & Visualizations** | *Planned* | Recharts interactive visualizations, file upload dropzone, live audit progress. |
 | **Phase 11** | **End-to-End Testing & Hardening** | *Planned* | Integration tests, seed sample datasets, rate-limiting. |
@@ -86,10 +86,37 @@ Last Updated: Phase 6 Reliability Score & Statistical Anomaly Detection Completi
 
 ---
 
-## 4. Planned Next (Phase 7)
+## 4. Completed in Phase 7
 
-- [ ] **Historical Quality Tracking & Run Logging**: Persist quality evaluation runs over time to track data health evolution.
-- [ ] **Run-over-Run Quality Trends**: Visual trend lines and historical run comparison.
-- [ ] **Drift & Regression Alerts**: Automatically flag quality score drops or metric regressions between consecutive ingestion batches.
+- [x] **Database Model & Migration**:
+  - `QualityRun` model with UUID primary key, `dataset_id` foreign key (`ondelete="CASCADE"`), `workspace_id` foreign key (`ondelete="CASCADE"`), `row_count`, `column_count`, `quality_score`, `completeness_score`, `anomaly_score`, `reliability_score`, `anomaly_percentage`, `notes`, and `created_at`.
+  - Migration `005_create_quality_runs.py` with verified upgrade, rollback, and re-apply behavior.
+  - Appropriate indexes on `dataset_id`, `workspace_id`, and `created_at`.
+- [x] **History Domain Service (`HistoryService`)**:
+  - Orchestrates execution by calling `ReliabilityService.calculate_reliability()` as single source of truth without duplicating formulas or anomaly detection logic.
+  - Persists compact summary metrics without storing raw rows or arrays of individual violations.
+  - Queries historical runs ordered newest first with a sensible limit of 50.
+  - Enforces strict workspace ownership and dataset verification.
+- [x] **REST APIs**:
+  - `POST /api/datasets/{dataset_id}/runs`: Execute analysis and record a historical snapshot.
+  - `GET /api/datasets/{dataset_id}/runs`: List previous runs (newest first).
+  - `GET /api/datasets/{dataset_id}/runs/{run_id}`: Fetch a specific historical snapshot.
+  - JWT authentication and workspace isolation enforced.
+- [x] **Frontend Experience**:
+  - `ReliabilityTrendChart.tsx`: Recharts time-series line chart visualizing Reliability Score progression across audits with tooltips.
+  - Automated trend delta interpretation comparing the 2 latest runs (improving, declining, stable).
+  - Informative empty and single-run baseline states.
+  - `QualityRunHistory.tsx`: Historical runs table with formatted dates, current run badge, score pills, and metric breakdowns.
+  - "Run Analysis & Save Snapshot" primary button in `ReliabilityOverview.tsx` with loading and success states, triggering instant chart and table refresh.
+- [x] **Automated Tests**:
+  - Total 48 unit and integration tests passing (`pytest -v`), including 6 dedicated tests in `test_history.py` (authentication, workspace isolation, creation, chronological sorting, single-run fetching, invalid run 404, no raw data storage).
+
+---
+
+## 5. Planned Next (Phase 8)
+
+- [ ] **Advanced Analytics Dashboard**: Multi-column distribution plots, correlation matrix, and dataset comparisons.
+- [ ] **Data Drift Detection**: Automated statistical divergence tracking between runs.
+- [ ] **AI-powered Data Quality Explanation (Phase 9)**: Plain-language root cause diagnostics and remediation advice powered by the Gemini API.
 
 
