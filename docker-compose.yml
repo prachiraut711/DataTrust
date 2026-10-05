@@ -23,6 +23,7 @@ services:
       dockerfile: Dockerfile
     container_name: datatrust-backend
     restart: unless-stopped
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     environment:
       DATABASE_URL: postgresql://datatrust_user:datatrust_password@postgres:5432/datatrust_db
       ENVIRONMENT: development
@@ -43,6 +44,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: http://localhost:8000
     container_name: datatrust-frontend
     restart: unless-stopped
     ports:
