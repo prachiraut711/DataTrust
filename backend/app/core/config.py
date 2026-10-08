@@ -33,6 +33,16 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
     GEMINI_MODEL: str = "gemini-2.5-flash"
 
+    # Persistent Object Storage (Supabase Storage)
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices(
+            "SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY", "SUPABASE_API_KEY"
+        ),
+    )
+    SUPABASE_STORAGE_BUCKET: str = "datatrust-datasets"
+
     # Allowed CORS Origins (accepts JSON list or comma-separated string from env)
     CORS_ORIGINS: Union[List[str], str] = [
         "http://localhost:5173",
