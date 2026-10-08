@@ -114,14 +114,16 @@ class LocalStorageService:
         headers = self._get_supabase_headers()
 
         try:
-            with httpx.Client(timeout=60.0) as client:
+            with httpx.Client(timeout=60.0, follow_redirects=True) as client:
+                # 1. Primary standard Supabase Storage download endpoint
                 res = client.get(
-                    f"{base_url}/object/authenticated/{bucket}/{stored_filename}",
+                    f"{base_url}/object/{bucket}/{stored_filename}",
                     headers=headers,
                 )
+                # 2. Secondary fallback for authenticated route if standard returns 404
                 if res.status_code == 404:
                     res = client.get(
-                        f"{base_url}/object/{bucket}/{stored_filename}",
+                        f"{base_url}/object/authenticated/{bucket}/{stored_filename}",
                         headers=headers,
                     )
 
@@ -202,7 +204,11 @@ class LocalStorageService:
 
         # Cache check: if missing locally, attempt to restore from remote storage
         if not resolved.exists() and self.is_remote_configured():
-            self.download_from_remote(stored_filename, resolved)
+            downloaded = self.download_from_remote(stored_filename, resolved)
+            if not downloaded or not resolved.exists():
+                logger.warning(
+                    f"Remote download failed or file missing for {stored_filename}; local file not available."
+                )
 
         return resolved
 
